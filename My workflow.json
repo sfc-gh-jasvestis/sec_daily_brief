@@ -1,0 +1,825 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Enhanced data preparation - realistic RSS feed timeframe\n// Most RSS feeds only provide recent articles (7-14 days max)\n// Use 14 days to capture more stories while being realistic\nconst now = new Date();\nconst daysBack = 14; // 2 weeks - more realistic for RSS feeds\nconst cutoff = now.getTime() - (daysBack * 24 * 60 * 60 * 1000);\nconst cutoffDate = new Date(cutoff);\n\nconsole.log(`📅 RSS Feed Analysis - System Clock Time: ${now.toISOString()}`);\nconsole.log(`🇸🇬 Singapore Time: ${now.toLocaleString('en-SG', {timeZone: 'Asia/Singapore'})}`);\nconsole.log(`🌍 GMT Time: ${now.toUTCString()}`);\nconsole.log(`🕐 Server Local Time: ${now.toLocaleString()}`);\nconsole.log(`📅 Filtering stories from last ${daysBack} days: ${cutoffDate.toISOString()}`);\nconsole.log(`🔍 Total input items received: ${$input.all().length}`);\n\n// First, analyze what we're getting from RSS feeds\nconst allStories = $input.all().map((item, index) => {\n  const j = item.json;\n  const link = j.link || j.url || '';\n  let host = 'unknown';\n  try { \n    host = link ? new URL(link).hostname : 'unknown'; \n  } catch(e) {}\n\n  // Ensure published date is in GMT/UTC format\n  let publishedDate;\n  const originalDate = j.isoDate || j.pubDate || j.date;\n  try {\n    publishedDate = new Date(originalDate || new Date()).toISOString();\n  } catch(e) {\n    publishedDate = new Date().toISOString();\n  }\n\n  const daysDiff = Math.floor((now.getTime() - new Date(publishedDate).getTime()) / (1000 * 60 * 60 * 24));\n  console.log(`📄 Story ${index + 1}: \"${(j.title || 'No title').substring(0, 40)}...\" from ${host} - Age: ${daysDiff} days (${publishedDate})`);\n\n  return {\n    source: j.source || j.feed || host,\n    title: j.title || 'No title',\n    link: link,\n    published: publishedDate,\n    snippet: j.contentSnippet || j.description || j.summary || 'No description',\n    categories: j.categories || [],\n    ageInDays: daysDiff\n  };\n});\n\n// Analyze date distribution\nconst dateStats = allStories.reduce((stats, story) => {\n  const age = story.ageInDays;\n  if (age <= 1) stats.today++;\n  else if (age <= 3) stats.last3Days++;\n  else if (age <= 7) stats.lastWeek++;\n  else if (age <= 14) stats.last2Weeks++;\n  else stats.older++;\n  return stats;\n}, { today: 0, last3Days: 0, lastWeek: 0, last2Weeks: 0, older: 0 });\n\nconsole.log(`📊 Story age distribution:`);\nconsole.log(`  📅 Today (0-1 days): ${dateStats.today}`);\nconsole.log(`  📅 Last 3 days: ${dateStats.last3Days}`);\nconsole.log(`  📅 Last week (4-7 days): ${dateStats.lastWeek}`);\nconsole.log(`  📅 Last 2 weeks (8-14 days): ${dateStats.last2Weeks}`);\nconsole.log(`  📅 Older than 2 weeks: ${dateStats.older}`);\n\nconsole.log(`📊 Total stories before filtering: ${allStories.length}`);\n\n// Filter with more lenient timeframe\nconst filteredStories = allStories.filter((story, index) => {\n  try {\n    const pubDate = new Date(story.published).getTime();\n    const isRecent = pubDate >= cutoff;\n    \n    if (isRecent) {\n      console.log(`✅ Keeping story ${index + 1}: \"${story.title.substring(0, 40)}...\" (${story.ageInDays} days old)`);\n    } else {\n      console.log(`🗑️ Filtering out story ${index + 1}: \"${story.title.substring(0, 40)}...\" (${story.ageInDays} days old - too old)`);\n    }\n    return isRecent;\n  } catch(e) {\n    console.log(`⚠️ Date parse error for story ${index + 1}: \"${story.title.substring(0, 40)}...\", keeping it`);\n    return true; // Keep if we can't parse date\n  }\n});\n\nconsole.log(`📰 Final result: ${filteredStories.length} stories from last ${daysBack} days for AI analysis`);\nconsole.log(`📊 Date range: ${cutoffDate.toISOString()} to ${now.toISOString()}`);\nconsole.log(`🎯 Cutoff: ${daysBack} days ago (${cutoffDate.toISOString()})`);\n\nif (filteredStories.length === 0) {\n  console.log(`⚠️ WARNING: No stories found! This suggests RSS feeds may not have recent content or there's a date parsing issue.`);\n}\n\n// Output ONE item that contains all stories (like original)\nreturn [{ json: { stories: filteredStories } }];"
+      },
+      "id": "f3de19f5-43a0-43d6-abb6-057eefd6514c",
+      "name": "Prepare Stories",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -544,
+        -80
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced processing with better error handling\nlet content = $json?.message?.content ?? '';\nif (typeof content !== 'string') content = String(content || '');\n\n// Remove code fences if present\ncontent = content.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/,'');\n\n// Extract JSON from any surrounding text\nconst jsonStart = content.indexOf('{');\nconst jsonEnd = content.lastIndexOf('}');\n\nif (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {\n  content = content.substring(jsonStart, jsonEnd + 1);\n}\n\nconsole.log('🔄 Processing AI response...');\nconsole.log('📏 Content length:', content.length);\nconsole.log('👀 First 300 chars:', content.substring(0, 300));\nconsole.log('🔚 Last 300 chars:', content.substring(Math.max(0, content.length - 300)));\n\nlet finalData;\ntry {\n  finalData = JSON.parse(content);\n  console.log('✅ Successfully parsed JSON');\n  console.log('📊 Stories found:', finalData.stories?.length || 0);\n  console.log('📂 Categories:', finalData.categories?.length || 0);\n  \n  // Validate the response has the expected structure\n  if (!finalData.stories || !Array.isArray(finalData.stories)) {\n    throw new Error('Missing or invalid stories array');\n  }\n  if (!finalData.categories || !Array.isArray(finalData.categories)) {\n    throw new Error('Missing or invalid categories array');\n  }\n  \n} catch (error) {\n  console.error('❌ JSON parse failed:', error.message);\n  console.log('📄 Content length:', content.length, 'chars');\n  console.log('🔍 Content ends with }?', content.trim().endsWith('}'));\n  console.log('📝 Last 500 chars:', content.substring(Math.max(0, content.length - 500)));\n  \n  // Check if this is a truncation issue\n  const isTruncated = !content.trim().endsWith('}') || error.message.includes('Unexpected end');\n  \n  // Fallback structure\n  finalData = {\n    title: 'Daily Cybersecurity Brief - Parse Error',\n    total_stories: 1,\n    categories: ['Error'],\n    stories: [{\n      category: 'Error',\n      headline: 'AI Response Processing Failed',\n      summary: isTruncated \n        ? `Response was truncated (${content.length} chars). Increase maxTokens from 16000 to 20000+ or reduce categories.`\n        : `Invalid JSON: ${error.message}. The AI may have included explanatory text.`,\n      why_matters: isTruncated\n        ? 'Token limit reached before completing the response. Need to either increase token limit or simplify the prompt.'\n        : 'The AI prompt needs adjustment to ensure valid JSON-only output.',\n      companies: ['OpenAI'],\n      url: '#',\n      published_date: new Date().toISOString()\n    }],\n    metadata: {\n      source: 'Error Handler',\n      ai_model: 'GPT-5',\n      last_update: new Date().toISOString(),\n      workflow_version: '6.0',\n      error: error.message,\n      content_length: content.length,\n      truncated: isTruncated,\n      last_100_chars: content.substring(Math.max(0, content.length - 100))\n    }\n  };\n}\n\n// Ensure required fields with GMT timestamps\nfinalData.generated_at = new Date().toISOString();\nif (!finalData.stories) finalData.stories = [];\nif (!finalData.categories) finalData.categories = [];\nif (!finalData.metadata) finalData.metadata = {};\n\n// Send data directly to webhook\nconsole.log('🎣 Preparing data for webhook');\nconsole.log('📊 Final summary:');\nconsole.log('  Title:', finalData.title);\nconsole.log('  Stories:', finalData.stories.length);\nconsole.log('  Categories:', finalData.categories.join(', '));\nconsole.log('  Generated:', finalData.generated_at);\nconsole.log('🔗 Will send to webhook: /webhook/tech-brief');\n\n// Add date for historical tracking\nconst currentDate = new Date().toISOString().split('T')[0];\nfinalData.date_key = currentDate;\nfinalData.singapore_date = new Date().toLocaleString('en-SG', {timeZone: 'Asia/Singapore', dateStyle: 'full'});\n\nconsole.log('📅 Date key for history:', currentDate);\nconsole.log('🇸🇬 Singapore date:', finalData.singapore_date);\n\nreturn [{ json: finalData }];"
+      },
+      "id": "dd909823-f53f-4714-bbeb-8a178f4c39ba",
+      "name": "Process and Save",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        32,
+        -80
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/webhook/tech-brief",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "ca3b3bce-edda-4b4d-9454-4bad4f6237b0",
+      "name": "Save to File Server",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        256,
+        -80
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/category/security/feed/",
+        "options": {}
+      },
+      "id": "a28ec555-0064-457c-b939-54ba935f43c0",
+      "name": "Techcrunch",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        496
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "numberInputs": 13
+      },
+      "id": "1ade71e8-b540-4e9f-be81-4ab1fe9ac734",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        -1440,
+        -48
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "url": "https://hnrss.org/frontpage?points=150",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "41e8e2ec-e2a5-4760-bcee-fda1db9a385c",
+      "name": "hnrss",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        -80
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "link",
+        "options": {}
+      },
+      "id": "91810ec5-6ebb-4840-b69f-e6960a1c34dc",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "position": [
+        -1216,
+        16
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "1a6ca407-e101-4c3d-842a-38d71b2e2bcf",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ new Date($json.isoDate || $json.pubDate || $json.date || 0) >= new Date(Date.now() - 14*24*60*60*1000) }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e1dda8e7-ea6b-402d-bed8-c99e5d3d55d0",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -992,
+        16
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "maxItems": 400,
+        "keep": "="
+      },
+      "id": "9cdeb75d-91f9-4f1f-89e7-d6d97c862a55",
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "position": [
+        -768,
+        -80
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5",
+          "mode": "list",
+          "cachedResultName": "GPT-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Senior security editor for VP of Cybersecurity. Categorize stories into these categories (use exact names):\n\nZero-Day Exploits | Threat Intelligence & APTs | Breaches/Ransomware | Vulnerabilities | Incident Response & Forensics | Identity & Access Management | Supply Chain Security | Cloud/SaaS | Critical Infrastructure & OT/ICS | Mobile & IoT Security | Policy/Regulation | Data Privacy & Protection | Compliance & Audit | Security Operations & Tools | Startups/Funding | Research | AI/ML\n\nFor each: 1-2 sentence summary + brief \"why it matters\". Extract CVEs/vendors. No hype.\n\nInclude 20-30 stories. Prioritize: Zero-Days > APTs > Breaches.\n\nOUTPUT ONLY VALID JSON (no markdown, no code fences, no explanations). START WITH { and END WITH }:\n\n{\n  \"title\": \"Daily Cybersecurity Brief\",\n  \"total_stories\": 25,\n  \"categories\": [\"Zero-Day Exploits\", \"Threat Intelligence & APTs\", \"Breaches/Ransomware\", \"Vulnerabilities\", \"Incident Response & Forensics\", \"Identity & Access Management\", \"Supply Chain Security\", \"Cloud/SaaS\", \"Critical Infrastructure & OT/ICS\", \"Mobile & IoT Security\", \"Policy/Regulation\", \"Data Privacy & Protection\", \"Compliance & Audit\", \"Security Operations & Tools\", \"Startups/Funding\", \"Research\", \"AI/ML\"],\n  \"stories\": [\n    {\n      \"category\": \"Zero-Day Exploits\",\n      \"headline\": \"headline\",\n      \"summary\": \"summary\",\n      \"why_matters\": \"impact\",\n      \"companies\": [\"vendor\"],\n      \"url\": \"url\",\n      \"published_date\": \"2025-09-19T12:00:00Z\"\n    }\n  ],\n  \"metadata\": {\n    \"source\": \"13 Security Sources\",\n    \"ai_model\": \"GPT-5\",\n    \"last_update\": \"2025-09-19T12:00:00Z\",\n    \"workflow_version\": \"6.0\"\n  }\n}\n\nCRITICAL: Output ONLY the JSON object. No text before or after. Use exact category names. GMT timestamps.",
+              "role": "system"
+            },
+            {
+              "content": "=Today's items (JSON array):\n{{ JSON.stringify($json.stories) }}\n"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 16000
+        }
+      },
+      "id": "ddf6d7d4-4b00-4f72-ae22-d506f34939bc",
+      "name": "Message a model",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -320,
+        -80
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "p2tr3sQY50nuePzd",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// code by ca7ai\nif (items.length === 0) {\n  return [{\n    json: {\n      empty: true,\n      subject: `Daily Cyber & Tech Brief — No major updates`,\n      html: `<p>No notable headlines in the last 24h from your sources.</p>`,\n      text: `No notable headlines in the last 24h.`\n    }\n  }];\n}\nreturn items;\n"
+      },
+      "id": "75161368-45b0-48b2-ba40-aea8123cdd25",
+      "name": "No New Items",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -768,
+        112
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "https://www.bleepingcomputer.com/feed/",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "5810d6ab-56a7-41a9-9d84-e7e7c9c6c05d",
+      "name": "Bleeping Computer1",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        -464
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        },
+        "timezone": "Asia/Singapore"
+      },
+      "id": "e2c75718-82b2-4ffa-84bc-6512094c2fbb",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -1888,
+        16
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://krebsonsecurity.com/feed/",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "krebs-security-feed",
+      "name": "Krebs on Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        -656
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.darkreading.com/rss.xml",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "dark-reading-feed",
+      "name": "Dark Reading",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        -560
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.securityweek.com/feed/",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "security-week-feed",
+      "name": "Security Week",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        -368
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.feedburner.com/eset/blog",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "eset-blog-feed",
+      "name": "ESET Blog",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        -176
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://threatpost.com/feed/",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "threat-post-feed",
+      "name": "Threat Post",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        16
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.csoonline.com/feed/",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "cso-online-feed",
+      "name": "CSO Online",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        208
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.wired.com/feed/category/security/latest/rss",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "wired-security-feed",
+      "name": "Wired Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        400
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.feedburner.com/TheHackersNews",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "hacker-news-feed",
+      "name": "The Hacker News",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        592
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.schneier.com/feed/atom/",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "schneier-feed",
+      "name": "Schneier on Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        784
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger-current-time",
+      "name": "Manual Trigger (Current Time)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -1888,
+        -120
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "https://www.theregister.com/security/headlines.atom",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "95b666a9-2578-4af7-9c7d-c086a114bc6c",
+      "name": "The Register1",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        -1664,
+        304
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log completion and file save success\nconst completionData = {\n  timestamp: new Date().toISOString(),\n  status: 'workflow_completed',\n  stories_saved: $json.stories || 0,\n  title: $json.title || 'Unknown',\n  file_updated: true\n};\n\nconsole.log('🎉 Workflow completed successfully!');\nconsole.log('📊 Final Summary:');\nconsole.log('  Stories saved:', completionData.stories_saved);\nconsole.log('  File updated:', completionData.file_updated);\nconsole.log('  Timestamp:', completionData.timestamp);\nconsole.log('🔄 Streamlit will auto-refresh within 30 seconds');\nconsole.log('📱 Check: http://localhost:8501');\n\nreturn [{ json: completionData }];"
+      },
+      "id": "8d3b8c41-8b28-4fb2-afc8-65794fc84039",
+      "name": "Workflow Complete",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        480,
+        -80
+      ],
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Prepare Stories": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process and Save": {
+      "main": [
+        [
+          {
+            "node": "Save to File Server",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Prepare Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "hnrss": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Techcrunch": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Process and Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bleeping Computer1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Bleeping Computer1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "hnrss",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "The Register1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Techcrunch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Krebs on Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dark Reading",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Security Week",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ESET Blog",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Threat Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CSO Online",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wired Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "The Hacker News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Schneier on Security",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Threat Post": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 8
+          }
+        ]
+      ]
+    },
+    "CSO Online": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 9
+          }
+        ]
+      ]
+    },
+    "Wired Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 10
+          }
+        ]
+      ]
+    },
+    "The Hacker News": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 11
+          }
+        ]
+      ]
+    },
+    "Schneier on Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 12
+          }
+        ]
+      ]
+    },
+    "Manual Trigger (Current Time)": {
+      "main": [
+        [
+          {
+            "node": "Bleeping Computer1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "hnrss",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "The Register1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Techcrunch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Krebs on Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dark Reading",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Security Week",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ESET Blog",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Threat Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CSO Online",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wired Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "The Hacker News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Schneier on Security",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Krebs on Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Dark Reading": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Security Week": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "ESET Blog": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    },
+    "The Register1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Workflow Complete": {
+      "main": []
+    },
+    "Save to File Server": {
+      "main": [
+        [
+          {
+            "node": "Workflow Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "538e1dfa-5d24-4402-a5cb-46f742473fe8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e75ac9108ae985b75ad672292de624433e6a630feed4435868ac6a972615da9f"
+  },
+  "id": "Vuk7LBCcKoK69nwv",
+  "tags": []
+}
