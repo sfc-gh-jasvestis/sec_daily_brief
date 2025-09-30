@@ -10,7 +10,7 @@ RUN apk add --no-cache curl postgresql-client
 RUN mkdir -p /home/node/.n8n/workflows
 
 # Copy workflow files
-COPY hacker-news-workflow.json /home/node/.n8n/workflows/
+COPY "My workflow.json" /home/node/.n8n/workflows/
 
 # Create custom nodes directory if needed
 RUN mkdir -p /home/node/.n8n/custom
