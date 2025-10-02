@@ -385,17 +385,6 @@
       "typeVersion": 1.2
     },
     {
-      "parameters": {},
-      "id": "manual-trigger-current-time",
-      "name": "Manual Trigger (Current Time)",
-      "type": "n8n-nodes-base.manualTrigger",
-      "position": [
-        -1888,
-        -120
-      ],
-      "typeVersion": 1
-    },
-    {
       "parameters": {
         "url": "https://www.theregister.com/security/headlines.atom",
         "options": {
