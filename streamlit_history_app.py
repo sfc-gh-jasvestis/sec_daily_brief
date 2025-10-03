@@ -301,31 +301,15 @@ class HistoryTechBriefApp:
         metadata = data.get('metadata', {})
         
         # Summary metrics with responsive layout
-        # Show deduplication info if available
-        dedup_info = data.get('deduplication', {})
-        has_dedup = dedup_info.get('duplicate_count', 0) > 0
+        # Summary metrics - deduplication now happens at workflow layer
+        col1, col2 = st.columns(2)
         
-        if has_dedup:
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("New Stories Today", data.get('total_stories', 0))
-            
-            with col2:
-                st.metric("Categories", len(data.get('categories', [])))
-            
-            with col3:
-                duplicates = dedup_info.get('duplicate_count', 0)
-                st.metric("Duplicates Filtered", duplicates, 
-                         help=f"Stories that appeared in previous days: {duplicates}")
-        else:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.metric("Total Stories", data.get('total_stories', 0))
-            
-            with col2:
-                st.metric("Categories", len(data.get('categories', [])))
+        with col1:
+            st.metric("Total Stories", data.get('total_stories', 0), 
+                     help="Stories are deduplicated at workflow layer before AI processing")
+        
+        with col2:
+            st.metric("Categories", len(data.get('categories', [])))
         
         # Generated time and source in full-width sections for better readability
         st.markdown("---")
