@@ -48,6 +48,79 @@ def cleanup_old_files():
     
     return old_files
 
+def get_previously_seen_urls():
+    """Get all story URLs from previous historical files (excluding today)"""
+    ensure_history_dir()
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    pattern = os.path.join(HISTORY_DIR, "tech_brief_*.json")
+    seen_urls = set()
+    
+    for file_path in glob.glob(pattern):
+        filename = os.path.basename(file_path)
+        try:
+            date_str = filename.replace('tech_brief_', '').replace('.json', '')
+            
+            # Skip today's file (we want to dedupe against previous days only)
+            if date_str == current_date:
+                continue
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                stories = data.get('stories', [])
+                for story in stories:
+                    url = story.get('url', '').strip()
+                    if url:
+                        seen_urls.add(url)
+        except Exception as e:
+            print(f"⚠️ Error reading {filename} for deduplication: {e}")
+    
+    print(f"🔍 Found {len(seen_urls)} previously seen story URLs across {len(glob.glob(pattern)) - 1} historical files")
+    return seen_urls
+
+def deduplicate_stories(data):
+    """Remove stories that appeared in previous days"""
+    if 'stories' not in data or not isinstance(data['stories'], list):
+        print("⚠️ No stories array found in data")
+        return data
+    
+    original_count = len(data['stories'])
+    previously_seen = get_previously_seen_urls()
+    
+    # Filter out stories we've seen before
+    new_stories = []
+    duplicate_count = 0
+    
+    for story in data['stories']:
+        url = story.get('url', '').strip()
+        if url in previously_seen:
+            duplicate_count += 1
+            print(f"🔄 Skipping duplicate: {story.get('headline', 'Unknown')[:60]}...")
+        else:
+            new_stories.append(story)
+    
+    # Update data with deduplicated stories
+    data['stories'] = new_stories
+    data['total_stories'] = len(new_stories)
+    
+    # Update categories count if needed
+    if new_stories:
+        unique_categories = sorted(set(story.get('category', 'Uncategorized') for story in new_stories))
+        data['categories'] = unique_categories
+    else:
+        data['categories'] = []
+    
+    # Add deduplication metadata
+    data['deduplication'] = {
+        'original_count': original_count,
+        'duplicate_count': duplicate_count,
+        'new_stories_count': len(new_stories),
+        'previously_seen_urls': len(previously_seen)
+    }
+    
+    print(f"✂️ Deduplication: {original_count} stories → {len(new_stories)} new stories ({duplicate_count} duplicates removed)")
+    
+    return data
+
 def save_historical_file(data):
     """Save data to both current file and historical file"""
     ensure_history_dir()
@@ -110,14 +183,20 @@ def receive_tech_brief():
         print(f"📨 Received data with {data.get('total_stories', 0)} stories")
         print(f"🕒 Generated at: {data.get('generated_at', 'Unknown')}")
         
+        # Deduplicate stories against previous days
+        data = deduplicate_stories(data)
+        
         # Save to both current and historical files
         success = save_historical_file(data)
         
         if success:
+            dedup_info = data.get('deduplication', {})
             return jsonify({
                 "status": "success",
                 "message": "Data saved successfully",
                 "stories": data.get('total_stories', 0),
+                "original_stories": dedup_info.get('original_count', 0),
+                "duplicates_removed": dedup_info.get('duplicate_count', 0),
                 "timestamp": datetime.now().isoformat(),
                 "file_date": data.get('file_date', 'Unknown')
             })
