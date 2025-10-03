@@ -173,7 +173,7 @@ def get_available_dates():
 
 @app.route('/webhook/tech-brief', methods=['POST'])
 def receive_tech_brief():
-    """Receive tech brief data from n8n workflow (already deduplicated at workflow layer)"""
+    """Receive tech brief data from n8n workflow"""
     try:
         data = request.get_json()
         
@@ -182,16 +182,21 @@ def receive_tech_brief():
         
         print(f"📨 Received data with {data.get('total_stories', 0)} stories")
         print(f"🕒 Generated at: {data.get('generated_at', 'Unknown')}")
-        print(f"ℹ️  Deduplication now handled at workflow layer (before AI processing)")
+        
+        # Deduplicate stories against previous days
+        data = deduplicate_stories(data)
         
         # Save to both current and historical files
         success = save_historical_file(data)
         
         if success:
+            dedup_info = data.get('deduplication', {})
             return jsonify({
                 "status": "success",
                 "message": "Data saved successfully",
                 "stories": data.get('total_stories', 0),
+                "original_stories": dedup_info.get('original_count', 0),
+                "duplicates_removed": dedup_info.get('duplicate_count', 0),
                 "timestamp": datetime.now().isoformat(),
                 "file_date": data.get('file_date', 'Unknown')
             })
