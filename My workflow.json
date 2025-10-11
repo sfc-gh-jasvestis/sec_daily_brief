@@ -173,7 +173,8 @@
           ]
         },
         "options": {
-          "maxTokens": 24000
+          "maxTokens": 24000,
+          "timeout": 600000
         }
       },
       "id": "ddf6d7d4-4b00-4f72-ae22-d506f34939bc",
