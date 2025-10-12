@@ -157,14 +157,14 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "gpt-5",
+          "value": "gpt-4o",
           "mode": "list",
-          "cachedResultName": "GPT-5"
+          "cachedResultName": "GPT-4o"
         },
         "messages": {
           "values": [
             {
-              "content": "Senior security editor for VP of Cybersecurity. Categorize stories into these categories (use exact names):\n\nZero-Day Exploits | Threat Intelligence & APTs | Breaches/Ransomware | Vulnerabilities | Incident Response & Forensics | Identity & Access Management | Supply Chain Security | Cloud/SaaS | Critical Infrastructure & OT/ICS | Mobile & IoT Security | Policy/Regulation | Data Privacy & Protection | Compliance & Audit | Security Operations & Tools | Startups/Funding | Research | AI/ML\n\nFor each: 1-2 sentence summary + brief \"why it matters\". Extract CVEs/vendors. No hype.\n\nInclude 40-60 stories (aim for comprehensive coverage). Prioritize: Zero-Days > APTs > Breaches > Vulnerabilities.\n\nOUTPUT ONLY VALID JSON (no markdown, no code fences, no explanations). START WITH { and END WITH }:\n\n{\n  \"title\": \"Daily Cybersecurity Brief\",\n  \"total_stories\": 50,\n  \"categories\": [\"Zero-Day Exploits\", \"Threat Intelligence & APTs\", \"Breaches/Ransomware\", \"Vulnerabilities\", \"Incident Response & Forensics\", \"Identity & Access Management\", \"Supply Chain Security\", \"Cloud/SaaS\", \"Critical Infrastructure & OT/ICS\", \"Mobile & IoT Security\", \"Policy/Regulation\", \"Data Privacy & Protection\", \"Compliance & Audit\", \"Security Operations & Tools\", \"Startups/Funding\", \"Research\", \"AI/ML\"],\n  \"stories\": [\n    {\n      \"category\": \"Zero-Day Exploits\",\n      \"headline\": \"headline\",\n      \"summary\": \"summary\",\n      \"why_matters\": \"impact\",\n      \"companies\": [\"vendor\"],\n      \"url\": \"url\",\n      \"published_date\": \"2025-09-19T12:00:00Z\"\n    }\n  ],\n  \"metadata\": {\n    \"source\": \"13 Security Sources\",\n    \"ai_model\": \"GPT-5\",\n    \"last_update\": \"2025-09-19T12:00:00Z\",\n    \"workflow_version\": \"7.0\"\n  }\n}\n\nCRITICAL: Output ONLY the JSON object. No text before or after. Use exact category names. GMT timestamps.",
+              "content": "Senior security editor for VP of Cybersecurity. Categorize stories into these categories (use exact names):\n\nZero-Day Exploits | Threat Intelligence & APTs | Breaches/Ransomware | Vulnerabilities | Incident Response & Forensics | Identity & Access Management | Supply Chain Security | Cloud/SaaS | Critical Infrastructure & OT/ICS | Mobile & IoT Security | Policy/Regulation | Data Privacy & Protection | Compliance & Audit | Security Operations & Tools | Startups/Funding | Research | AI/ML\n\nFor each: 1-2 sentence summary + brief \"why it matters\". Extract CVEs/vendors. No hype.\n\nInclude 40-60 stories (aim for comprehensive coverage). Prioritize: Zero-Days > APTs > Breaches > Vulnerabilities.\n\nOUTPUT ONLY VALID JSON (no markdown, no code fences, no explanations). START WITH { and END WITH }:\n\n{\n  \"title\": \"Daily Cybersecurity Brief\",\n  \"total_stories\": 50,\n  \"categories\": [\"Zero-Day Exploits\", \"Threat Intelligence & APTs\", \"Breaches/Ransomware\", \"Vulnerabilities\", \"Incident Response & Forensics\", \"Identity & Access Management\", \"Supply Chain Security\", \"Cloud/SaaS\", \"Critical Infrastructure & OT/ICS\", \"Mobile & IoT Security\", \"Policy/Regulation\", \"Data Privacy & Protection\", \"Compliance & Audit\", \"Security Operations & Tools\", \"Startups/Funding\", \"Research\", \"AI/ML\"],\n  \"stories\": [\n    {\n      \"category\": \"Zero-Day Exploits\",\n      \"headline\": \"headline\",\n      \"summary\": \"summary\",\n      \"why_matters\": \"impact\",\n      \"companies\": [\"vendor\"],\n      \"url\": \"url\",\n      \"published_date\": \"2025-09-19T12:00:00Z\"\n    }\n  ],\n  \"metadata\": {\n    \"source\": \"13 Security Sources\",\n    \"ai_model\": \"GPT-4o\",\n    \"last_update\": \"2025-09-19T12:00:00Z\",\n    \"workflow_version\": \"7.1\"\n  }\n}\n\nCRITICAL: Output ONLY the JSON object. No text before or after. Use exact category names. GMT timestamps.",
               "role": "system"
             },
             {
@@ -173,7 +173,7 @@
           ]
         },
         "options": {
-          "maxTokens": 24000,
+          "maxTokens": 16000,
           "timeout": 600000
         }
       },
