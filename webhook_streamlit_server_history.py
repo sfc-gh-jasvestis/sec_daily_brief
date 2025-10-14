@@ -7,6 +7,7 @@ Saves daily files and maintains a 7-day rolling history.
 import json
 import os
 import time
+import re
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from pathlib import Path
@@ -77,6 +78,30 @@ def get_previously_seen_urls():
     print(f"🔍 Found {len(seen_urls)} previously seen story URLs across {len(glob.glob(pattern)) - 1} historical files")
     return seen_urls
 
+def sanitize_html(text):
+    """Remove HTML tags from text to prevent rendering issues"""
+    if not isinstance(text, str):
+        return text
+    # Remove all HTML tags
+    clean_text = re.sub(r'<[^>]+>', '', text)
+    # Clean up extra whitespace
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+    return clean_text
+
+def sanitize_story(story):
+    """Sanitize all text fields in a story to remove HTML tags"""
+    if not isinstance(story, dict):
+        return story
+    
+    # Fields that should be sanitized
+    text_fields = ['headline', 'summary', 'why_matters', 'category']
+    
+    for field in text_fields:
+        if field in story and isinstance(story[field], str):
+            story[field] = sanitize_html(story[field])
+    
+    return story
+
 def deduplicate_stories(data):
     """Remove stories that appeared in previous days"""
     if 'stories' not in data or not isinstance(data['stories'], list):
@@ -86,7 +111,7 @@ def deduplicate_stories(data):
     original_count = len(data['stories'])
     previously_seen = get_previously_seen_urls()
     
-    # Filter out stories we've seen before
+    # Filter out stories we've seen before AND sanitize them
     new_stories = []
     duplicate_count = 0
     
@@ -96,7 +121,9 @@ def deduplicate_stories(data):
             duplicate_count += 1
             print(f"🔄 Skipping duplicate: {story.get('headline', 'Unknown')[:60]}...")
         else:
-            new_stories.append(story)
+            # Sanitize the story before adding it
+            sanitized_story = sanitize_story(story)
+            new_stories.append(sanitized_story)
     
     # Update data with deduplicated stories
     data['stories'] = new_stories
