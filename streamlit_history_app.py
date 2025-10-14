@@ -303,10 +303,12 @@ class HistoryTechBriefApp:
         # Summary metrics with responsive layout
         # Show deduplication info if available
         dedup_info = data.get('deduplication', {})
-        has_dedup = dedup_info.get('duplicate_count', 0) > 0
+        duplicates = dedup_info.get('duplicate_count', 0)
+        non_english = dedup_info.get('non_english_count', 0)
+        has_filtering = duplicates > 0 or non_english > 0
         
-        if has_dedup:
-            col1, col2, col3 = st.columns(3)
+        if has_filtering:
+            col1, col2, col3, col4 = st.columns(4)
             
             with col1:
                 st.metric("New Stories Today", data.get('total_stories', 0))
@@ -315,9 +317,12 @@ class HistoryTechBriefApp:
                 st.metric("Categories", len(data.get('categories', [])))
             
             with col3:
-                duplicates = dedup_info.get('duplicate_count', 0)
                 st.metric("Duplicates Filtered", duplicates, 
                          help=f"Stories that appeared in previous days: {duplicates}")
+            
+            with col4:
+                st.metric("Non-English Filtered", non_english,
+                         help=f"Stories in other languages: {non_english}")
         else:
             col1, col2 = st.columns(2)
             

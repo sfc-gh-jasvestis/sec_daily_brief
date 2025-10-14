@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from pathlib import Path
 import glob
+from langdetect import detect, LangDetectException
 
 app = Flask(__name__)
 
@@ -88,6 +89,19 @@ def sanitize_html(text):
     clean_text = re.sub(r'\s+', ' ', clean_text).strip()
     return clean_text
 
+def is_english(text):
+    """Detect if text is in English"""
+    if not text or not isinstance(text, str):
+        return True  # Default to True if no text to check
+    
+    try:
+        # Combine multiple fields for better detection accuracy
+        detected_lang = detect(text)
+        return detected_lang == 'en'
+    except LangDetectException:
+        # If detection fails (e.g., text too short), default to True
+        return True
+
 def sanitize_story(story):
     """Sanitize all text fields in a story to remove HTML tags"""
     if not isinstance(story, dict):
@@ -103,7 +117,7 @@ def sanitize_story(story):
     return story
 
 def deduplicate_stories(data):
-    """Remove stories that appeared in previous days"""
+    """Remove stories that appeared in previous days and filter non-English stories"""
     if 'stories' not in data or not isinstance(data['stories'], list):
         print("⚠️ No stories array found in data")
         return data
@@ -111,21 +125,35 @@ def deduplicate_stories(data):
     original_count = len(data['stories'])
     previously_seen = get_previously_seen_urls()
     
-    # Filter out stories we've seen before AND sanitize them
+    # Filter out duplicates, non-English stories, and sanitize
     new_stories = []
     duplicate_count = 0
+    non_english_count = 0
     
     for story in data['stories']:
         url = story.get('url', '').strip()
         if url in previously_seen:
             duplicate_count += 1
             print(f"🔄 Skipping duplicate: {story.get('headline', 'Unknown')[:60]}...")
-        else:
-            # Sanitize the story before adding it
-            sanitized_story = sanitize_story(story)
-            new_stories.append(sanitized_story)
+            continue
+        
+        # Check if story is in English (combine headline + summary for better detection)
+        text_to_check = f"{story.get('headline', '')} {story.get('summary', '')}"
+        if not is_english(text_to_check):
+            non_english_count += 1
+            detected_lang = 'unknown'
+            try:
+                detected_lang = detect(text_to_check)
+            except:
+                pass
+            print(f"🌐 Skipping non-English story ({detected_lang}): {story.get('headline', 'Unknown')[:60]}...")
+            continue
+        
+        # Sanitize the story before adding it
+        sanitized_story = sanitize_story(story)
+        new_stories.append(sanitized_story)
     
-    # Update data with deduplicated stories
+    # Update data with deduplicated and filtered stories
     data['stories'] = new_stories
     data['total_stories'] = len(new_stories)
     
@@ -136,15 +164,16 @@ def deduplicate_stories(data):
     else:
         data['categories'] = []
     
-    # Add deduplication metadata
+    # Add deduplication and filtering metadata
     data['deduplication'] = {
         'original_count': original_count,
         'duplicate_count': duplicate_count,
+        'non_english_count': non_english_count,
         'new_stories_count': len(new_stories),
         'previously_seen_urls': len(previously_seen)
     }
     
-    print(f"✂️ Deduplication: {original_count} stories → {len(new_stories)} new stories ({duplicate_count} duplicates removed)")
+    print(f"✂️ Filtering: {original_count} stories → {len(new_stories)} kept ({duplicate_count} duplicates, {non_english_count} non-English removed)")
     
     return data
 
