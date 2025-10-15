@@ -6,6 +6,7 @@ Shows current brief and allows browsing through the last 7 days of briefs.
 
 import streamlit as st
 import json
+import html
 import os
 import requests
 from datetime import datetime, timedelta
@@ -186,24 +187,30 @@ class HistoryTechBriefApp:
         pub_date = story.get('published_date', '')
         formatted_date = self.format_singapore_time(pub_date) if pub_date else 'Date not available'
         
+        # Escape HTML to prevent rendering of tags in content
+        headline = html.escape(story.get('headline', 'No headline available'))
+        summary = html.escape(story.get('summary', 'No summary available'))
+        why_matters = html.escape(story.get('why_matters', 'Analysis not available'))
+        url = html.escape(story.get('url', '#'))
+        
         st.markdown(f"""
         <div class="story-card">
             <div class="story-headline">
-                <a href="{story.get('url', '#')}" target="_blank" style="text-decoration: none; color: #90caf9;">
-                    {story.get('headline', 'No headline available')}
+                <a href="{url}" target="_blank" style="text-decoration: none; color: #90caf9;">
+                    {headline}
                 </a>
             </div>
             <div style="color: #b0b0b0; font-size: 0.9rem; margin-bottom: 0.8rem;">
                 📅 {formatted_date}
             </div>
             <div class="story-summary">
-                {story.get('summary', 'No summary available')}
+                {summary}
             </div>
             <div class="why-matters">
-                <strong>💡 Why it matters:</strong> {story.get('why_matters', 'Analysis not available')}
+                <strong>💡 Why it matters:</strong> {why_matters}
             </div>
             <div>
-                {' '.join([f'<span class="company-tag">{company.strip()}</span>' for company in companies[:8]])}
+                {' '.join([f'<span class="company-tag">{html.escape(company.strip())}</span>' for company in companies[:8]])}
             </div>
         </div>
         """, unsafe_allow_html=True)
