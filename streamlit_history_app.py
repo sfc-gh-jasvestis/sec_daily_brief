@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import pytz
 from typing import Dict, List
 import glob
+from urllib.parse import urlparse
 
 # Configure Streamlit page
 st.set_page_config(
@@ -38,6 +39,13 @@ st.markdown("""
         background: linear-gradient(90deg, #64b5f6 0%, #90caf9 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+    }
+    
+    .brief-subtitle {
+        text-align: center;
+        color: #b0b0b0;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
     }
     
     .story-card {
@@ -177,6 +185,18 @@ class HistoryTechBriefApp:
         except:
             return timestamp
     
+    def extract_domain(self, url: str) -> str:
+        """Extract clean domain name from URL"""
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            # Remove 'www.' prefix if present
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            return domain
+        except:
+            return "Unknown source"
+    
     def render_story_card(self, story: Dict):
         """Render a story card"""
         companies = story.get('companies', [])
@@ -187,33 +207,34 @@ class HistoryTechBriefApp:
         pub_date = story.get('published_date', '')
         formatted_date = self.format_singapore_time(pub_date) if pub_date else 'Date not available'
         
+        # Extract website domain
+        url_raw = story.get('url', '#')
+        website = self.extract_domain(url_raw)
+        
         # Escape HTML to prevent rendering of tags in content
         headline = html.escape(story.get('headline', 'No headline available'))
         summary = html.escape(story.get('summary', 'No summary available'))
         why_matters = html.escape(story.get('why_matters', 'Analysis not available'))
-        url = html.escape(story.get('url', '#'))
+        url = html.escape(url_raw)
+        website_escaped = html.escape(website)
         
-        st.markdown(f"""
-        <div class="story-card">
-            <div class="story-headline">
-                <a href="{url}" target="_blank" style="text-decoration: none; color: #90caf9;">
-                    {headline}
-                </a>
-            </div>
-            <div style="color: #b0b0b0; font-size: 0.9rem; margin-bottom: 0.8rem;">
-                📅 {formatted_date}
-            </div>
-            <div class="story-summary">
-                {summary}
-            </div>
-            <div class="why-matters">
-                <strong>💡 Why it matters:</strong> {why_matters}
-            </div>
-            <div>
-                {' '.join([f'<span class="company-tag">{html.escape(company.strip())}</span>' for company in companies[:8]])}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Build companies HTML separately
+        companies_html = ''
+        if companies and len(companies) > 0:
+            company_tags = ' '.join([f'<span class="company-tag">{html.escape(company.strip())}</span>' for company in companies[:8] if company.strip()])
+            if company_tags:
+                companies_html = f'<div style="margin-top: 0.5rem;">{company_tags}</div>'
+        
+        st.markdown(f"""<div class="story-card">
+    <div class="story-headline">
+        <a href="{url}" target="_blank" style="text-decoration: none; color: #90caf9;">{headline}</a>
+    </div>
+    <div style="color: #b0b0b0; font-size: 0.9rem; margin-bottom: 0.8rem;">
+        📅 {formatted_date} • 🌐 <a href="{url}" target="_blank" style="color: #64b5f6; text-decoration: none;">{website_escaped}</a>
+    </div>
+    <div class="story-summary">{summary}</div>
+    <div class="why-matters"><strong>💡 Why it matters:</strong> {why_matters}</div>{companies_html}
+</div>""", unsafe_allow_html=True)
     
     def render_date_selector(self) -> str:
         """Render date selector and return selected date"""
@@ -342,8 +363,8 @@ class HistoryTechBriefApp:
         # Generated time and source in full-width sections for better readability
         st.markdown("---")
         
-        # Generated time section
-        last_update = metadata.get('last_update', data.get('generated_at', ''))
+        # Generated time section - prioritize generated_at over metadata last_update
+        last_update = data.get('generated_at', '') or data.get('saved_at', '') or metadata.get('last_update', '')
         if last_update:
             time_str = self.format_singapore_time(last_update, short_format=True)
         else:
