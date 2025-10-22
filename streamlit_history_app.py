@@ -244,8 +244,8 @@ class HistoryTechBriefApp:
             st.warning("No historical data available yet. Run your workflow to generate data.")
             return None
         
-        # Create date options
-        date_options = ["Today (Latest)"] + [
+        # Create date options - only show actual dates
+        date_options = [
             f"{date} ({self.format_date_display(date)})" 
             for date in available_dates
         ]
@@ -256,11 +256,8 @@ class HistoryTechBriefApp:
             help="Choose which day's brief to view"
         )
         
-        if selected_option == "Today (Latest)":
-            return None  # Current data
-        else:
-            # Extract date from option string
-            return selected_option.split(' ')[0]
+        # Extract date from option string
+        return selected_option.split(' ')[0]
     
     def format_date_display(self, date_str: str) -> str:
         """Format date for display"""
@@ -310,14 +307,12 @@ class HistoryTechBriefApp:
         data = self.load_data_for_date(selected_date)
         
         if not data:
-            if selected_date:
-                st.error(f"No data found for {selected_date}")
-            else:
-                st.warning("No current data available. Run your n8n workflow to generate data.")
+            st.error(f"No data found for {selected_date}")
             return
         
-        # Show historical indicator if viewing past data
-        if selected_date:
+        # Show historical indicator only if viewing past data (not today)
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        if selected_date and selected_date != today_date:
             singapore_date = data.get('singapore_date', selected_date)
             st.markdown(f"""
             <div class="historical-indicator">
@@ -432,7 +427,7 @@ class HistoryTechBriefApp:
             selected_option = st.selectbox(
                 "Select a category to filter",
                 category_options,
-                key=f"category_{selected_date or 'current'}"
+                key=f"category_{selected_date}"
             )
             
             # Extract actual category name - handle the count in parentheses
