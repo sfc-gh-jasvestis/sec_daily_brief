@@ -5,9 +5,10 @@ An automated n8n workflow system that generates comprehensive daily cybersecurit
 ## 🔒 Features
 
 - **Automated Collection**: Monitors 13 premium security RSS feeds
-- **AI Categorization**: GPT-5 powered story categorization across 17 security domains
-- **Smart Filtering**: 14-day rolling window for relevant stories
+- **AI Categorization**: GPT-4o powered story categorization across 17 security domains
+- **Smart Deduplication**: Filters duplicate stories across 7-day history and non-English content
 - **Historical Archive**: 7-day rolling history with date-based browsing
+- **Website Source Display**: See the source website for each story
 - **Singapore Timezone**: All timestamps displayed in SGT
 - **Enhanced Navigation**: Filter by category or threat level groups
 - **Dark Theme**: Modern, responsive UI optimized for security professionals
@@ -98,26 +99,23 @@ The workflow runs daily at **10 AM Singapore Time** (configurable in `My workflo
 
 ### RSS Sources
 
-Currently monitoring 13 sources:
+Currently monitoring 13 security sources including:
 - Bleeping Computer
 - The Hacker News
 - Dark Reading
 - Security Week
-- TechCrunch Security
-- Krebs on Security
-- ESET Blog
-- Threat Post
 - CSO Online
-- Wired Security
 - The Register
-- Schneier on Security
+- Krebs on Security
+- And more...
 
 ### AI Model
 
-- **Model**: GPT-5
+- **Model**: GPT-4o
 - **Max Tokens**: 16,000
 - **Story Target**: 20-30 stories per brief
 - **Categories**: 17 comprehensive security categories
+- **Deduplication**: Automatic filtering of duplicate URLs and non-English content
 
 ## 📱 Usage
 
@@ -141,20 +139,23 @@ Currently monitoring 13 sources:
 
 ### Browse History
 
-1. Use the sidebar **"📅 Browse History"** selector
-2. Choose a date from the last 7 days
-3. View historical briefs
+1. Use the sidebar **"📅 Select Date"** dropdown
+2. Choose a date from the last 7 days (shows "Today", "Yesterday", or "X days ago")
+3. View historical briefs with automatic deduplication
 
 ## 🔄 Workflow Details
 
 ### Data Flow
 
-1. **RSS Collection**: 13 feeds polled every 30 minutes (testing) / daily (production)
-2. **Deduplication**: Remove duplicate stories by URL
-3. **Date Filtering**: Keep stories from last 14 days
-4. **AI Processing**: GPT-5 categorizes and summarizes stories
-5. **Storage**: Webhook server saves current + historical files
-6. **Display**: Streamlit dashboard renders with filtering
+1. **RSS Collection**: 13 feeds polled daily at 10 AM SGT
+2. **AI Processing**: GPT-4o categorizes and summarizes stories
+3. **Webhook Delivery**: n8n sends processed data to Flask webhook server
+4. **Smart Filtering**: 
+   - Removes duplicate URLs from previous 7 days
+   - Filters non-English stories automatically
+   - Sanitizes HTML tags from content
+5. **Storage**: Webhook server saves current + 7-day historical files
+6. **Display**: Streamlit dashboard with category filters and date navigation
 
 ### Error Handling
 
@@ -193,25 +194,34 @@ Stories are saved in JSON format:
 ```json
 {
   "title": "Daily Cybersecurity Brief",
-  "total_stories": 27,
+  "total_stories": 11,
   "categories": [...],
   "stories": [
     {
-      "category": "Zero-Day Exploits",
+      "category": "Vulnerabilities",
       "headline": "...",
       "summary": "...",
       "why_matters": "...",
       "companies": [...],
       "url": "...",
-      "published_date": "2025-09-30T12:00:00Z"
+      "published_date": "2025-10-20T09:49:00Z"
     }
   ],
   "metadata": {
     "source": "13 Security Sources",
-    "ai_model": "GPT-5",
-    "last_update": "2025-09-30T16:00:00Z",
-    "workflow_version": "6.0"
-  }
+    "ai_model": "GPT-4o",
+    "last_update": "2025-10-20T12:00:00Z",
+    "workflow_version": "7.1"
+  },
+  "deduplication": {
+    "original_count": 17,
+    "duplicate_count": 6,
+    "non_english_count": 0,
+    "new_stories_count": 11,
+    "previously_seen_urls": 134
+  },
+  "generated_at": "2025-10-20T10:01:03.918Z",
+  "singapore_date": "Monday, 20 October 2025"
 }
 ```
 
@@ -252,4 +262,4 @@ For questions or issues, please open a GitHub issue.
 
 ---
 
-**Built with**: n8n, Streamlit, Flask, OpenAI GPT-5, Python, Love for Security ❤️
+**Built with**: n8n, Streamlit, Flask, OpenAI GPT-4o, Python, Love for Security ❤️
