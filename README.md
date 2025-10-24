@@ -5,7 +5,7 @@ An automated n8n workflow system that generates comprehensive daily cybersecurit
 ## 🔒 Features
 
 - **Automated Collection**: Monitors 13 premium security RSS feeds
-- **AI Categorization**: GPT-4o powered story categorization across 17 security domains
+- **AI Categorization**: GPT-4.1-MINI powered story categorization across 17 security domains
 - **Smart Deduplication**: Filters duplicate stories across 7-day history and non-English content
 - **Historical Archive**: 7-day rolling history with date-based browsing
 - **Website Source Display**: See the source website for each story
@@ -111,7 +111,7 @@ Currently monitoring 13 security sources including:
 
 ### AI Model
 
-- **Model**: GPT-4o
+- **Model**: GPT-4.1-MINI
 - **Max Tokens**: 16,000
 - **Story Target**: 20-30 stories per brief
 - **Categories**: 17 comprehensive security categories
@@ -148,7 +148,7 @@ Currently monitoring 13 security sources including:
 ### Data Flow
 
 1. **RSS Collection**: 13 feeds polled daily at 10 AM SGT
-2. **AI Processing**: GPT-4o categorizes and summarizes stories
+2. **AI Processing**: GPT-4.1-MINI categorizes and summarizes stories
 3. **Webhook Delivery**: n8n sends processed data to Flask webhook server
 4. **Smart Filtering**: 
    - Removes duplicate URLs from previous 7 days
@@ -209,7 +209,7 @@ Stories are saved in JSON format:
   ],
   "metadata": {
     "source": "13 Security Sources",
-    "ai_model": "GPT-4o",
+    "ai_model": "GPT-4.1-MINI",
     "last_update": "2025-10-20T12:00:00Z",
     "workflow_version": "7.1"
   },
@@ -262,4 +262,4 @@ For questions or issues, please open a GitHub issue.
 
 ---
 
-**Built with**: n8n, Streamlit, Flask, OpenAI GPT-4o, Python, Love for Security ❤️
+**Built with**: n8n, Streamlit, Flask, OpenAI GPT-4.1-MINI, Python, Love for Security ❤️
