@@ -63,7 +63,7 @@
     },
     {
       "parameters": {
-        "numberInputs": 13
+        "numberInputs": 28
       },
       "id": "1ade71e8-b540-4e9f-be81-4ab1fe9ac734",
       "name": "Merge",
@@ -403,6 +403,171 @@
     },
     {
       "parameters": {
+        "url": "https://www.microsoft.com/en-us/security/blog/feed/",
+        "options": {}
+      },
+      "id": "ms-security-blog-feed",
+      "name": "Microsoft Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 880],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://security.googleblog.com/feeds/posts/default",
+        "options": {}
+      },
+      "id": "google-security-blog-feed",
+      "name": "Google Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 976],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://aws.amazon.com/blogs/security/feed/",
+        "options": {}
+      },
+      "id": "aws-security-blog-feed",
+      "name": "AWS Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1072],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://blog.talosintelligence.com/rss/",
+        "options": {}
+      },
+      "id": "cisco-talos-feed",
+      "name": "Cisco Talos",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1168],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://unit42.paloaltonetworks.com/feed/",
+        "options": {}
+      },
+      "id": "unit42-feed",
+      "name": "Unit 42",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1264],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+        "options": {}
+      },
+      "id": "cisa-alerts-feed",
+      "name": "CISA Alerts",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1360],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.mandiant.com/resources/blog/rss.xml",
+        "options": {}
+      },
+      "id": "mandiant-feed",
+      "name": "Mandiant",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1456],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.crowdstrike.com/blog/feed/",
+        "options": {}
+      },
+      "id": "crowdstrike-feed",
+      "name": "CrowdStrike",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1552],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://blog.rapid7.com/rss/",
+        "options": {}
+      },
+      "id": "rapid7-feed",
+      "name": "Rapid7",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1648],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.tenable.com/blog/feed",
+        "options": {}
+      },
+      "id": "tenable-feed",
+      "name": "Tenable",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1744],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://isc.sans.edu/rssfeed.xml",
+        "options": {}
+      },
+      "id": "sans-isc-feed",
+      "name": "SANS ISC",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1840],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://packetstormsecurity.com/feeds/news/",
+        "options": {}
+      },
+      "id": "packet-storm-feed",
+      "name": "Packet Storm",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 1936],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://blog.malwarebytes.com/feed/",
+        "options": {}
+      },
+      "id": "malwarebytes-feed",
+      "name": "Malwarebytes",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 2032],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://news.sophos.com/en-us/feed/",
+        "options": {}
+      },
+      "id": "sophos-feed",
+      "name": "Sophos News",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 2128],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.zdnet.com/blog/security/rss.xml",
+        "options": {}
+      },
+      "id": "zdnet-feed",
+      "name": "ZDNet Security",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [-1664, 2224],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
         "jsCode": "// Log completion and file save success\nconst completionData = {\n  timestamp: new Date().toISOString(),\n  status: 'workflow_completed',\n  stories_saved: $json.stories || 0,\n  title: $json.title || 'Unknown',\n  file_updated: true\n};\n\nconsole.log('🎉 Workflow completed successfully!');\nconsole.log('📊 Final Summary:');\nconsole.log('  Stories saved:', completionData.stories_saved);\nconsole.log('  File updated:', completionData.file_updated);\nconsole.log('  Timestamp:', completionData.timestamp);\nconsole.log('🔄 Streamlit will auto-refresh within 30 seconds');\nconsole.log('📱 Check: http://localhost:8501');\n\nreturn [{ json: completionData }];"
       },
       "id": "8d3b8c41-8b28-4fb2-afc8-65794fc84039",
@@ -660,6 +825,171 @@
         ]
       ]
     },
+    "Microsoft Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 13
+          }
+        ]
+      ]
+    },
+    "Google Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 14
+          }
+        ]
+      ]
+    },
+    "AWS Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 15
+          }
+        ]
+      ]
+    },
+    "Cisco Talos": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 16
+          }
+        ]
+      ]
+    },
+    "Unit 42": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 17
+          }
+        ]
+      ]
+    },
+    "CISA Alerts": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 18
+          }
+        ]
+      ]
+    },
+    "Mandiant": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 19
+          }
+        ]
+      ]
+    },
+    "CrowdStrike": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 20
+          }
+        ]
+      ]
+    },
+    "Rapid7": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 21
+          }
+        ]
+      ]
+    },
+    "Tenable": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 22
+          }
+        ]
+      ]
+    },
+    "SANS ISC": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 23
+          }
+        ]
+      ]
+    },
+    "Packet Storm": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 24
+          }
+        ]
+      ]
+    },
+    "Malwarebytes": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 25
+          }
+        ]
+      ]
+    },
+    "Sophos News": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 26
+          }
+        ]
+      ]
+    },
+    "ZDNet Security": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 27
+          }
+        ]
+      ]
+    },
     "Manual Trigger (Current Time)": {
       "main": [
         [
@@ -725,6 +1055,81 @@
           },
           {
             "node": "Schneier on Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Microsoft Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AWS Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cisco Talos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Unit 42",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CISA Alerts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mandiant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CrowdStrike",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Rapid7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tenable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SANS ISC",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Packet Storm",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Malwarebytes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Sophos News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ZDNet Security",
             "type": "main",
             "index": 0
           }
