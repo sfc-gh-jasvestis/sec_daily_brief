@@ -5,12 +5,12 @@
       "parameters": {
         "jsCode": "// Enhanced data preparation - show only recent stories for daily brief\n// Filter for stories from the last 1-2 days to keep the brief fresh and relevant\nconst now = new Date();\nconst daysBack = 2; // Only last 2 days for daily brief\nconst cutoff = now.getTime() - (daysBack * 24 * 60 * 60 * 1000);\nconst cutoffDate = new Date(cutoff);\n\nconsole.log(`📅 RSS Feed Analysis - System Clock Time: ${now.toISOString()}`);\nconsole.log(`🇸🇬 Singapore Time: ${now.toLocaleString('en-SG', {timeZone: 'Asia/Singapore'})}`);\nconsole.log(`🌍 GMT Time: ${now.toUTCString()}`);\nconsole.log(`🕐 Server Local Time: ${now.toLocaleString()}`);\nconsole.log(`📅 Filtering stories from last ${daysBack} days: ${cutoffDate.toISOString()}`);\nconsole.log(`🔍 Total input items received: ${$input.all().length}`);\n\n// First, analyze what we're getting from RSS feeds\nconst allStories = $input.all().map((item, index) => {\n  const j = item.json;\n  const link = j.link || j.url || '';\n  let host = 'unknown';\n  try { \n    host = link ? new URL(link).hostname : 'unknown'; \n  } catch(e) {}\n\n  // Ensure published date is in GMT/UTC format\n  let publishedDate;\n  const originalDate = j.isoDate || j.pubDate || j.date;\n  try {\n    publishedDate = new Date(originalDate || new Date()).toISOString();\n  } catch(e) {\n    publishedDate = new Date().toISOString();\n  }\n\n  const daysDiff = Math.floor((now.getTime() - new Date(publishedDate).getTime()) / (1000 * 60 * 60 * 24));\n  console.log(`📄 Story ${index + 1}: \"${(j.title || 'No title').substring(0, 40)}...\" from ${host} - Age: ${daysDiff} days (${publishedDate})`);\n\n  return {\n    source: j.source || j.feed || host,\n    title: j.title || 'No title',\n    link: link,\n    published: publishedDate,\n    snippet: j.contentSnippet || j.description || j.summary || 'No description',\n    categories: j.categories || [],\n    ageInDays: daysDiff\n  };\n});\n\n// Analyze date distribution\nconst dateStats = allStories.reduce((stats, story) => {\n  const age = story.ageInDays;\n  if (age <= 1) stats.today++;\n  else if (age <= 3) stats.last3Days++;\n  else if (age <= 7) stats.lastWeek++;\n  else if (age <= 14) stats.last2Weeks++;\n  else stats.older++;\n  return stats;\n}, { today: 0, last3Days: 0, lastWeek: 0, last2Weeks: 0, older: 0 });\n\nconsole.log(`📊 Story age distribution:`);\nconsole.log(`  📅 Today (0-1 days): ${dateStats.today}`);\nconsole.log(`  📅 Last 3 days: ${dateStats.last3Days}`);\nconsole.log(`  📅 Last week (4-7 days): ${dateStats.lastWeek}`);\nconsole.log(`  📅 Last 2 weeks (8-14 days): ${dateStats.last2Weeks}`);\nconsole.log(`  📅 Older than 2 weeks: ${dateStats.older}`);\n\nconsole.log(`📊 Total stories before filtering: ${allStories.length}`);\n\n// Filter to keep only recent stories (last 2 days)\nconst filteredStories = allStories.filter((story, index) => {\n  try {\n    const pubDate = new Date(story.published).getTime();\n    const isRecent = pubDate >= cutoff;\n    \n    if (isRecent) {\n      console.log(`✅ Keeping story ${index + 1}: \"${story.title.substring(0, 40)}...\" (${story.ageInDays} days old)`);\n    } else {\n      console.log(`🗑️ Filtering out story ${index + 1}: \"${story.title.substring(0, 40)}...\" (${story.ageInDays} days old - too old)`);\n    }\n    return isRecent;\n  } catch(e) {\n    console.log(`⚠️ Date parse error for story ${index + 1}: \"${story.title.substring(0, 40)}...\", keeping it`);\n    return true; // Keep if we can't parse date\n  }\n});\n\nconsole.log(`📰 Stories after date filter: ${filteredStories.length}`);\n\n// Language filtering - detect and remove non-English stories\nconst isEnglish = (text) => {\n  if (!text || typeof text !== 'string') return true;\n  \n  // Check for common non-English characters\n  const nonEnglishPatterns = [\n    /[äöüßÄÖÜ]/,  // German\n    /[àâæçéèêëïîôùûüÿœÀÂÆÇÉÈÊËÏÎÔÙÛÜŸŒ]/,  // French\n    /[áéíñóúüÁÉÍÑÓÚÜ¿¡]/,  // Spanish\n    /[àèéìíîòóùúÀÈÉÌÍÎÒÓÙÚ]/,  // Italian\n    /[\\u0400-\\u04FF]/,  // Cyrillic (Russian, etc.)\n    /[\\u4E00-\\u9FFF]/,  // Chinese\n    /[\\u3040-\\u309F\\u30A0-\\u30FF]/,  // Japanese\n    /[\\uAC00-\\uD7AF]/,  // Korean\n    /[\\u0600-\\u06FF]/  // Arabic\n  ];\n  \n  return !nonEnglishPatterns.some(pattern => pattern.test(text));\n};\n\nconst englishStories = filteredStories.filter((story, index) => {\n  const titleEnglish = isEnglish(story.title);\n  const snippetEnglish = isEnglish(story.snippet);\n  const isEnglishContent = titleEnglish && snippetEnglish;\n  \n  if (!isEnglishContent) {\n    console.log(`🌐 Filtered non-English story ${index + 1}: \"${story.title.substring(0, 60)}...\"`);\n  }\n  \n  return isEnglishContent;\n});\n\nconsole.log(`🌍 Language filtering: ${filteredStories.length} → ${englishStories.length} stories (removed ${filteredStories.length - englishStories.length} non-English)`);\nconsole.log(`📊 Date range: ${cutoffDate.toISOString()} to ${now.toISOString()}`);\nconsole.log(`🎯 Cutoff: ${daysBack} days ago (${cutoffDate.toISOString()})`);\n\nif (englishStories.length === 0) {\n  console.log(`⚠️ WARNING: No stories found! This suggests RSS feeds may not have recent content or there's a date parsing issue.`);\n}\n\n// Output ONE item that contains all stories (like original)\nreturn [{ json: { stories: englishStories } }];"
       },
-      "id": "f3de19f5-43a0-43d6-abb6-057eefd6514c",
+      "id": "b8f5f7bc-6b31-426c-9a6b-892f73d63e2b",
       "name": "Prepare Stories",
       "type": "n8n-nodes-base.code",
       "position": [
-        -544,
-        -80
+        1888,
+        -2016
       ],
       "typeVersion": 2
     },
@@ -18,12 +18,12 @@
       "parameters": {
         "jsCode": "// Enhanced processing with better error handling\nlet content = $json?.message?.content ?? '';\nif (typeof content !== 'string') content = String(content || '');\n\n// Remove code fences if present\ncontent = content.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/,'');\n\n// Extract JSON from any surrounding text\nconst jsonStart = content.indexOf('{');\nconst jsonEnd = content.lastIndexOf('}');\n\nif (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {\n  content = content.substring(jsonStart, jsonEnd + 1);\n}\n\nconsole.log('🔄 Processing AI response...');\nconsole.log('📏 Content length:', content.length);\nconsole.log('👀 First 300 chars:', content.substring(0, 300));\nconsole.log('🔚 Last 300 chars:', content.substring(Math.max(0, content.length - 300)));\n\nlet finalData;\ntry {\n  finalData = JSON.parse(content);\n  console.log('✅ Successfully parsed JSON');\n  console.log('📊 Stories found:', finalData.stories?.length || 0);\n  console.log('📂 Categories:', finalData.categories?.length || 0);\n  \n  // Validate the response has the expected structure\n  if (!finalData.stories || !Array.isArray(finalData.stories)) {\n    throw new Error('Missing or invalid stories array');\n  }\n  if (!finalData.categories || !Array.isArray(finalData.categories)) {\n    throw new Error('Missing or invalid categories array');\n  }\n  \n  // Post-AI deduplication - remove duplicate URLs\n  const beforeDedup = finalData.stories.length;\n  const seenUrls = new Set();\n  const duplicates = [];\n  \n  finalData.stories = finalData.stories.filter((story, index) => {\n    const url = story.url || '';\n    if (!url) return true; // Keep stories without URLs\n    \n    if (seenUrls.has(url)) {\n      duplicates.push({ index: index + 1, url, headline: story.headline });\n      console.log(`🔄 Removed duplicate #${index + 1}: \"${story.headline?.substring(0, 50)}...\" (${url})`);\n      return false;\n    }\n    \n    seenUrls.add(url);\n    return true;\n  });\n  \n  if (duplicates.length > 0) {\n    console.log(`🧹 Deduplication: ${beforeDedup} → ${finalData.stories.length} stories (removed ${duplicates.length} duplicates)`);\n    duplicates.forEach(dup => {\n      console.log(`  ❌ Duplicate story #${dup.index}: ${dup.headline?.substring(0, 60)}...`);\n    });\n  } else {\n    console.log(`✅ No duplicates found in AI response`);\n  }\n  \n  // Update total_stories count after deduplication\n  finalData.total_stories = finalData.stories.length;\n  \n} catch (error) {\n  console.error('❌ JSON parse failed:', error.message);\n  console.log('📄 Content length:', content.length, 'chars');\n  console.log('🔍 Content ends with }?', content.trim().endsWith('}'));\n  console.log('📝 Last 500 chars:', content.substring(Math.max(0, content.length - 500)));\n  \n  // Check if this is a truncation issue\n  const isTruncated = !content.trim().endsWith('}') || error.message.includes('Unexpected end');\n  \n  // Fallback structure\n  finalData = {\n    title: 'Daily Cybersecurity Brief - Parse Error',\n    total_stories: 1,\n    categories: ['Error'],\n    stories: [{\n      category: 'Error',\n      headline: 'AI Response Processing Failed',\n      summary: isTruncated \n        ? `Response was truncated (${content.length} chars). Increase maxTokens from 16000 to 20000+ or reduce categories.`\n        : `Invalid JSON: ${error.message}. The AI may have included explanatory text.`,\n      why_matters: isTruncated\n        ? 'Token limit reached before completing the response. Need to either increase token limit or simplify the prompt.'\n        : 'The AI prompt needs adjustment to ensure valid JSON-only output.',\n      companies: ['OpenAI'],\n      url: '#',\n      published_date: new Date().toISOString()\n    }],\n    metadata: {\n      source: 'Error Handler',\n      ai_model: 'GPT-4.1-MINI',\n      last_update: new Date().toISOString(),\n      workflow_version: '6.0',\n      error: error.message,\n      content_length: content.length,\n      truncated: isTruncated,\n      last_100_chars: content.substring(Math.max(0, content.length - 100))\n    }\n  };\n}\n\n// Ensure required fields with GMT timestamps\nfinalData.generated_at = new Date().toISOString();\nif (!finalData.stories) finalData.stories = [];\nif (!finalData.categories) finalData.categories = [];\nif (!finalData.metadata) finalData.metadata = {};\n\n// Send data directly to webhook\nconsole.log('🎣 Preparing data for webhook');\nconsole.log('📊 Final summary:');\nconsole.log('  Title:', finalData.title);\nconsole.log('  Stories:', finalData.stories.length);\nconsole.log('  Categories:', finalData.categories.join(', '));\nconsole.log('  Generated:', finalData.generated_at);\nconsole.log('🔗 Will send to webhook: /webhook/tech-brief');\n\n// Add date for historical tracking\nconst currentDate = new Date().toISOString().split('T')[0];\nfinalData.date_key = currentDate;\nfinalData.singapore_date = new Date().toLocaleString('en-SG', {timeZone: 'Asia/Singapore', dateStyle: 'full'});\n\nconsole.log('📅 Date key for history:', currentDate);\nconsole.log('🇸🇬 Singapore date:', finalData.singapore_date);\n\nreturn [{ json: finalData }];"
       },
-      "id": "dd909823-f53f-4714-bbeb-8a178f4c39ba",
+      "id": "fb930b7e-9ba5-4738-af44-468036933d70",
       "name": "Process and Save",
       "type": "n8n-nodes-base.code",
       "position": [
-        32,
-        -80
+        2464,
+        -2016
       ],
       "typeVersion": 2
     },
@@ -38,12 +38,12 @@
           "timeout": 15000
         }
       },
-      "id": "ca3b3bce-edda-4b4d-9454-4bad4f6237b0",
+      "id": "262b0c30-8a0d-4973-bfb7-afc4a1c9565f",
       "name": "Save to File Server",
       "type": "n8n-nodes-base.httpRequest",
       "position": [
-        256,
-        -80
+        2688,
+        -2016
       ],
       "typeVersion": 4.2
     },
@@ -52,25 +52,25 @@
         "url": "https://techcrunch.com/category/security/feed/",
         "options": {}
       },
-      "id": "a28ec555-0064-457c-b939-54ba935f43c0",
+      "id": "ba989cad-d85d-4b54-9aeb-7a5926ef02dc",
       "name": "Techcrunch",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        496
+        768,
+        -1440
       ],
       "typeVersion": 1.2
     },
     {
       "parameters": {
-        "numberInputs": 28
+        "numberInputs": 27
       },
-      "id": "1ade71e8-b540-4e9f-be81-4ab1fe9ac734",
+      "id": "b3c389c8-11ff-4654-836e-d2815abb3f67",
       "name": "Merge",
       "type": "n8n-nodes-base.merge",
       "position": [
-        -1440,
-        -48
+        992,
+        -1984
       ],
       "typeVersion": 3.2
     },
@@ -81,12 +81,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "41e8e2ec-e2a5-4760-bcee-fda1db9a385c",
+      "id": "30badfca-737d-44b0-8ab2-62b1ef8a0feb",
       "name": "hnrss",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        -80
+        768,
+        -2016
       ],
       "typeVersion": 1.2
     },
@@ -96,12 +96,12 @@
         "fieldsToCompare": "link",
         "options": {}
       },
-      "id": "91810ec5-6ebb-4840-b69f-e6960a1c34dc",
+      "id": "b942239b-f712-4aaa-9f43-155e6979a9f1",
       "name": "Remove Duplicates",
       "type": "n8n-nodes-base.removeDuplicates",
       "position": [
-        -1216,
-        16
+        1216,
+        -1920
       ],
       "typeVersion": 2
     },
@@ -130,12 +130,12 @@
         },
         "options": {}
       },
-      "id": "e1dda8e7-ea6b-402d-bed8-c99e5d3d55d0",
+      "id": "cdecfbe9-4b0d-4d6c-adaa-8e443029f16f",
       "name": "If",
       "type": "n8n-nodes-base.if",
       "position": [
-        -992,
-        16
+        1440,
+        -1920
       ],
       "typeVersion": 2.2
     },
@@ -144,12 +144,12 @@
         "maxItems": 400,
         "keep": "="
       },
-      "id": "9cdeb75d-91f9-4f1f-89e7-d6d97c862a55",
+      "id": "f0667f5c-8550-48ce-906b-dece6e01a3af",
       "name": "Limit",
       "type": "n8n-nodes-base.limit",
       "position": [
-        -768,
-        -80
+        1664,
+        -2016
       ],
       "typeVersion": 1
     },
@@ -173,16 +173,15 @@
           ]
         },
         "options": {
-          "maxTokens": 24000,
-          "timeout": 600000
+          "maxTokens": 24000
         }
       },
-      "id": "ddf6d7d4-4b00-4f72-ae22-d506f34939bc",
+      "id": "bfb041ff-d924-42eb-b2a2-bac998ef5014",
       "name": "Message a model",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "position": [
-        -320,
-        -80
+        2112,
+        -2016
       ],
       "typeVersion": 1.8,
       "credentials": {
@@ -196,12 +195,12 @@
       "parameters": {
         "jsCode": "// code by ca7ai\nif (items.length === 0) {\n  return [{\n    json: {\n      empty: true,\n      subject: `Daily Cyber & Tech Brief — No major updates`,\n      html: `<p>No notable headlines in the last 24h from your sources.</p>`,\n      text: `No notable headlines in the last 24h.`\n    }\n  }];\n}\nreturn items;\n"
       },
-      "id": "75161368-45b0-48b2-ba40-aea8123cdd25",
+      "id": "6c9be38f-4c38-409f-ac9e-137b2a49f15b",
       "name": "No New Items",
       "type": "n8n-nodes-base.code",
       "position": [
-        -768,
-        112
+        1664,
+        -1824
       ],
       "typeVersion": 2
     },
@@ -212,12 +211,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "5810d6ab-56a7-41a9-9d84-e7e7c9c6c05d",
+      "id": "b232d6d4-7d01-4cef-93db-69b052755be8",
       "name": "Bleeping Computer1",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        -464
+        768,
+        -2400
       ],
       "typeVersion": 1.2
     },
@@ -229,15 +228,14 @@
               "triggerAtHour": 10
             }
           ]
-        },
-        "timezone": "Asia/Singapore"
+        }
       },
-      "id": "e2c75718-82b2-4ffa-84bc-6512094c2fbb",
+      "id": "1fe150b8-1899-4b56-8daa-84ca178513c4",
       "name": "Schedule Trigger1",
       "type": "n8n-nodes-base.scheduleTrigger",
       "position": [
-        -1888,
-        16
+        544,
+        -1920
       ],
       "typeVersion": 1.2
     },
@@ -248,12 +246,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "krebs-security-feed",
+      "id": "00251a97-0c75-4f04-a426-5ba2424f89a9",
       "name": "Krebs on Security",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        -656
+        768,
+        -2592
       ],
       "typeVersion": 1.2
     },
@@ -264,12 +262,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "dark-reading-feed",
+      "id": "7997c202-1565-41f8-bee1-70028e994d8d",
       "name": "Dark Reading",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        -560
+        768,
+        -2496
       ],
       "typeVersion": 1.2
     },
@@ -280,12 +278,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "security-week-feed",
+      "id": "4d4b8bbd-be4e-4ae0-ae7e-68e419d1c3c0",
       "name": "Security Week",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        -368
+        768,
+        -2304
       ],
       "typeVersion": 1.2
     },
@@ -296,12 +294,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "eset-blog-feed",
+      "id": "d870a751-78df-4080-9fa0-61e1c6e74942",
       "name": "ESET Blog",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        -176
+        768,
+        -2112
       ],
       "typeVersion": 1.2
     },
@@ -312,12 +310,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "threat-post-feed",
+      "id": "bb2fdc9b-d237-4ff1-9bd4-e83ff36e6971",
       "name": "Threat Post",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        16
+        768,
+        -1920
       ],
       "typeVersion": 1.2
     },
@@ -328,12 +326,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "cso-online-feed",
+      "id": "367005ba-cd54-475b-8dce-e2e005fabc51",
       "name": "CSO Online",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        208
+        768,
+        -1728
       ],
       "typeVersion": 1.2
     },
@@ -344,12 +342,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "wired-security-feed",
+      "id": "bb586209-b3d3-45b5-9ca5-ae2ce4917b35",
       "name": "Wired Security",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        400
+        768,
+        -1536
       ],
       "typeVersion": 1.2
     },
@@ -360,12 +358,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "hacker-news-feed",
+      "id": "d77c7db5-4ddb-45de-a8f3-aaf8fb47f1ba",
       "name": "The Hacker News",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        592
+        768,
+        -1344
       ],
       "typeVersion": 1.2
     },
@@ -376,12 +374,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "schneier-feed",
+      "id": "916e7e95-79da-4268-b45d-66fedc1a0618",
       "name": "Schneier on Security",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        784
+        768,
+        -1152
       ],
       "typeVersion": 1.2
     },
@@ -392,12 +390,12 @@
           "ignoreSSL": false
         }
       },
-      "id": "95b666a9-2578-4af7-9c7d-c086a114bc6c",
+      "id": "d5c6c1e1-aad0-4e4a-b695-20a149cb7f0c",
       "name": "The Register1",
       "type": "n8n-nodes-base.rssFeedRead",
       "position": [
-        -1664,
-        304
+        768,
+        -1632
       ],
       "typeVersion": 1.2
     },
@@ -406,10 +404,13 @@
         "url": "https://www.microsoft.com/en-us/security/blog/feed/",
         "options": {}
       },
-      "id": "ms-security-blog-feed",
+      "id": "07ab3acf-db60-45cf-b23d-e413ec3fe40e",
       "name": "Microsoft Security",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 880],
+      "position": [
+        768,
+        -1056
+      ],
       "typeVersion": 1.2
     },
     {
@@ -417,10 +418,13 @@
         "url": "https://security.googleblog.com/feeds/posts/default",
         "options": {}
       },
-      "id": "google-security-blog-feed",
+      "id": "a465d4e1-cc7e-4b4c-a88d-e151c47d18d7",
       "name": "Google Security",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 976],
+      "position": [
+        768,
+        -960
+      ],
       "typeVersion": 1.2
     },
     {
@@ -428,10 +432,13 @@
         "url": "https://aws.amazon.com/blogs/security/feed/",
         "options": {}
       },
-      "id": "aws-security-blog-feed",
+      "id": "896eec81-35a7-47ee-9016-772e3a16af2b",
       "name": "AWS Security",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1072],
+      "position": [
+        768,
+        -864
+      ],
       "typeVersion": 1.2
     },
     {
@@ -439,10 +446,13 @@
         "url": "https://blog.talosintelligence.com/rss/",
         "options": {}
       },
-      "id": "cisco-talos-feed",
+      "id": "5db6e9f5-0cea-4988-946c-fd551caf990b",
       "name": "Cisco Talos",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1168],
+      "position": [
+        768,
+        -768
+      ],
       "typeVersion": 1.2
     },
     {
@@ -450,10 +460,13 @@
         "url": "https://unit42.paloaltonetworks.com/feed/",
         "options": {}
       },
-      "id": "unit42-feed",
+      "id": "1a04966c-d0dd-42dc-a789-08225a486492",
       "name": "Unit 42",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1264],
+      "position": [
+        768,
+        -672
+      ],
       "typeVersion": 1.2
     },
     {
@@ -461,10 +474,13 @@
         "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
         "options": {}
       },
-      "id": "cisa-alerts-feed",
+      "id": "68268f3b-dd86-4eb0-bb30-c5a663f9fa87",
       "name": "CISA Alerts",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1360],
+      "position": [
+        768,
+        -576
+      ],
       "typeVersion": 1.2
     },
     {
@@ -472,10 +488,13 @@
         "url": "https://www.mandiant.com/resources/blog/rss.xml",
         "options": {}
       },
-      "id": "mandiant-feed",
+      "id": "86fae3d5-b709-417e-a31a-7918aee0a6dc",
       "name": "Mandiant",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1456],
+      "position": [
+        768,
+        -480
+      ],
       "typeVersion": 1.2
     },
     {
@@ -483,21 +502,13 @@
         "url": "https://www.crowdstrike.com/blog/feed/",
         "options": {}
       },
-      "id": "crowdstrike-feed",
+      "id": "0ac8a7a6-6e32-4d33-8fef-262650760e0c",
       "name": "CrowdStrike",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1552],
-      "typeVersion": 1.2
-    },
-    {
-      "parameters": {
-        "url": "https://blog.rapid7.com/rss/",
-        "options": {}
-      },
-      "id": "rapid7-feed",
-      "name": "Rapid7",
-      "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1648],
+      "position": [
+        768,
+        -384
+      ],
       "typeVersion": 1.2
     },
     {
@@ -505,10 +516,13 @@
         "url": "https://www.tenable.com/blog/feed",
         "options": {}
       },
-      "id": "tenable-feed",
+      "id": "13cc088d-d65f-488e-8d01-6bdc8ad1d49c",
       "name": "Tenable",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1744],
+      "position": [
+        768,
+        -192
+      ],
       "typeVersion": 1.2
     },
     {
@@ -516,10 +530,13 @@
         "url": "https://isc.sans.edu/rssfeed.xml",
         "options": {}
       },
-      "id": "sans-isc-feed",
+      "id": "95871e1c-6042-4071-b3be-03af4a85355f",
       "name": "SANS ISC",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1840],
+      "position": [
+        768,
+        -96
+      ],
       "typeVersion": 1.2
     },
     {
@@ -527,10 +544,13 @@
         "url": "https://packetstormsecurity.com/feeds/news/",
         "options": {}
       },
-      "id": "packet-storm-feed",
+      "id": "2da6b216-9542-4237-a636-b2b3cb03664c",
       "name": "Packet Storm",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 1936],
+      "position": [
+        768,
+        16
+      ],
       "typeVersion": 1.2
     },
     {
@@ -538,10 +558,13 @@
         "url": "https://blog.malwarebytes.com/feed/",
         "options": {}
       },
-      "id": "malwarebytes-feed",
+      "id": "5ecb835b-2e26-4a78-871a-bcf71668a235",
       "name": "Malwarebytes",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 2032],
+      "position": [
+        768,
+        112
+      ],
       "typeVersion": 1.2
     },
     {
@@ -549,10 +572,13 @@
         "url": "https://news.sophos.com/en-us/feed/",
         "options": {}
       },
-      "id": "sophos-feed",
+      "id": "a2438072-86ac-4360-9195-7f5178e1be95",
       "name": "Sophos News",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 2128],
+      "position": [
+        768,
+        208
+      ],
       "typeVersion": 1.2
     },
     {
@@ -560,22 +586,25 @@
         "url": "https://www.zdnet.com/blog/security/rss.xml",
         "options": {}
       },
-      "id": "zdnet-feed",
+      "id": "b1f113d0-28c9-463c-93bf-12c22f4369d1",
       "name": "ZDNet Security",
       "type": "n8n-nodes-base.rssFeedRead",
-      "position": [-1664, 2224],
+      "position": [
+        768,
+        304
+      ],
       "typeVersion": 1.2
     },
     {
       "parameters": {
         "jsCode": "// Log completion and file save success\nconst completionData = {\n  timestamp: new Date().toISOString(),\n  status: 'workflow_completed',\n  stories_saved: $json.stories || 0,\n  title: $json.title || 'Unknown',\n  file_updated: true\n};\n\nconsole.log('🎉 Workflow completed successfully!');\nconsole.log('📊 Final Summary:');\nconsole.log('  Stories saved:', completionData.stories_saved);\nconsole.log('  File updated:', completionData.file_updated);\nconsole.log('  Timestamp:', completionData.timestamp);\nconsole.log('🔄 Streamlit will auto-refresh within 30 seconds');\nconsole.log('📱 Check: http://localhost:8501');\n\nreturn [{ json: completionData }];"
       },
-      "id": "8d3b8c41-8b28-4fb2-afc8-65794fc84039",
+      "id": "2c8a2e67-941a-4bff-9ea0-64cb2ce4a6d5",
       "name": "Workflow Complete",
       "type": "n8n-nodes-base.code",
       "position": [
-        480,
-        -80
+        2912,
+        -2016
       ],
       "typeVersion": 2
     }
@@ -766,6 +795,76 @@
             "node": "Schneier on Security",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Microsoft Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AWS Security",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cisco Talos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Unit 42",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CISA Alerts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mandiant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CrowdStrike",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tenable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SANS ISC",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Packet Storm",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Malwarebytes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Sophos News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ZDNet Security",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -913,17 +1012,6 @@
         ]
       ]
     },
-    "Rapid7": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 21
-          }
-        ]
-      ]
-    },
     "Tenable": {
       "main": [
         [
@@ -990,152 +1078,6 @@
         ]
       ]
     },
-    "Manual Trigger (Current Time)": {
-      "main": [
-        [
-          {
-            "node": "Bleeping Computer1",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "hnrss",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "The Register1",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Techcrunch",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Krebs on Security",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Dark Reading",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Security Week",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "ESET Blog",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Threat Post",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "CSO Online",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Wired Security",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "The Hacker News",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Schneier on Security",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Microsoft Security",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Google Security",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "AWS Security",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Cisco Talos",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Unit 42",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "CISA Alerts",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Mandiant",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "CrowdStrike",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Rapid7",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Tenable",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "SANS ISC",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Packet Storm",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Malwarebytes",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Sophos News",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "ZDNet Security",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Krebs on Security": {
       "main": [
         [
@@ -1191,9 +1133,6 @@
         ]
       ]
     },
-    "Workflow Complete": {
-      "main": []
-    },
     "Save to File Server": {
       "main": [
         [
@@ -1206,15 +1145,14 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "538e1dfa-5d24-4402-a5cb-46f742473fe8",
+  "versionId": "f980f0f5-92b2-4ae9-a06d-502b8ed7dd2a",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "e75ac9108ae985b75ad672292de624433e6a630feed4435868ac6a972615da9f"
   },
-  "id": "Vuk7LBCcKoK69nwv",
+  "id": "WhznlhxzGeNK9slV",
   "tags": []
 }
