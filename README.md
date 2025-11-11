@@ -113,7 +113,7 @@ Currently monitoring 26 security sources including:
 
 - **Model**: GPT-4.1-MINI
 - **Max Tokens**: 16,000
-- **Story Target**: 20-30 stories per brief
+- **Story Target**: 40-60 stories per brief
 - **Categories**: 17 comprehensive security categories
 - **Deduplication**: Automatic filtering of duplicate URLs and non-English content
 
@@ -147,7 +147,7 @@ Currently monitoring 26 security sources including:
 
 ### Data Flow
 
-1. **RSS Collection**: 13 feeds polled daily at 10 AM SGT
+1. **RSS Collection**: 26 feeds polled daily at 10 AM SGT
 2. **AI Processing**: GPT-4.1-MINI categorizes and summarizes stories
 3. **Webhook Delivery**: n8n sends processed data to Flask webhook server
 4. **Smart Filtering**: 
