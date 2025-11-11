@@ -63,7 +63,7 @@
     },
     {
       "parameters": {
-        "numberInputs": 27
+        "numberInputs": 26
       },
       "id": "b3c389c8-11ff-4654-836e-d2815abb3f67",
       "name": "Merge",
@@ -541,20 +541,6 @@
     },
     {
       "parameters": {
-        "url": "https://packetstormsecurity.com/rss/",
-        "options": {}
-      },
-      "id": "2da6b216-9542-4237-a636-b2b3cb03664c",
-      "name": "Packet Storm",
-      "type": "n8n-nodes-base.rssFeedRead",
-      "position": [
-        768,
-        16
-      ],
-      "typeVersion": 1.2
-    },
-    {
-      "parameters": {
         "url": "https://blog.malwarebytes.com/feed/",
         "options": {}
       },
@@ -847,11 +833,6 @@
             "index": 0
           },
           {
-            "node": "Packet Storm",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Malwarebytes",
             "type": "main",
             "index": 0
@@ -1030,17 +1011,6 @@
             "node": "Merge",
             "type": "main",
             "index": 23
-          }
-        ]
-      ]
-    },
-    "Packet Storm": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 24
           }
         ]
       ]
