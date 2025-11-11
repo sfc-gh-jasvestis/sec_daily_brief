@@ -92,21 +92,6 @@
     },
     {
       "parameters": {
-        "compare": "selectedFields",
-        "fieldsToCompare": "link",
-        "options": {}
-      },
-      "id": "b942239b-f712-4aaa-9f43-155e6979a9f1",
-      "name": "Remove Duplicates",
-      "type": "n8n-nodes-base.removeDuplicates",
-      "position": [
-        1216,
-        -1920
-      ],
-      "typeVersion": 2
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "version": 2,
@@ -652,7 +637,7 @@
       "main": [
         [
           {
-            "node": "Remove Duplicates",
+            "node": "If",
             "type": "main",
             "index": 0
           }
@@ -686,17 +671,6 @@
         [
           {
             "node": "Process and Save",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Remove Duplicates": {
-      "main": [
-        [
-          {
-            "node": "If",
             "type": "main",
             "index": 0
           }
