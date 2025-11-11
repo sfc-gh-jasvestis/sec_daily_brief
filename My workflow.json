@@ -541,7 +541,7 @@
     },
     {
       "parameters": {
-        "url": "https://packetstormsecurity.com/feeds/news/",
+        "url": "https://packetstormsecurity.com/rss/",
         "options": {}
       },
       "id": "2da6b216-9542-4237-a636-b2b3cb03664c",
