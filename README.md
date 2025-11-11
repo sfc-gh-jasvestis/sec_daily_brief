@@ -99,7 +99,7 @@ The workflow runs daily at **10 AM Singapore Time** (configurable in `My workflo
 
 ### RSS Sources
 
-Currently monitoring 13 security sources including:
+Currently monitoring 26 security sources including:
 - Bleeping Computer
 - The Hacker News
 - Dark Reading
