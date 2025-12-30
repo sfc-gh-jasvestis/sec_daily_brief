@@ -36,3 +36,4 @@ docker-compose-no-db.yml
 # Archives
 *.tar.gz
 *.zip
+backups/
