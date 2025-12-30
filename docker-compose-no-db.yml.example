@@ -1,0 +1,59 @@
+# Docker Compose without PostgreSQL - uses SQLite for n8n
+# Copy this file to docker-compose-no-db.yml and add your API keys
+services:
+  n8n:
+    build:
+      context: .
+      dockerfile: Dockerfile.n8n
+    restart: unless-stopped
+    environment:
+      # Use SQLite instead of PostgreSQL
+      DB_TYPE: sqlite
+      DB_SQLITE_DATABASE: /home/node/.n8n/database.sqlite
+      DB_SQLITE_POOL_SIZE: 3
+      
+      # n8n Configuration
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      NODE_ENV: development
+      WEBHOOK_URL: http://localhost:5678
+      GENERIC_TIMEZONE: Asia/Singapore
+      
+      # Security - allow user registration
+      N8N_BASIC_AUTH_ACTIVE: false
+      N8N_USER_MANAGEMENT_DISABLED: false
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: false
+      N8N_GIT_NODE_DISABLE_BARE_REPOS: true
+      
+      # OpenAI - set your API key here
+      OPENAI_API_KEY: your-openai-api-key-here
+      
+      # Execution
+      EXECUTIONS_MODE: regular
+      N8N_RUNNERS_ENABLED: true
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data_local:/home/node/.n8n
+      - ./history:/data/history:ro  # Mount history directory as read-only for deduplication
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./history:/app/history:ro  # Mount history directory as read-only
+      - ./tech_brief.json:/app/tech_brief.json:ro  # Mount current brief as read-only
+    depends_on:
+      - n8n
+
+volumes:
+  n8n_data_local:
+
