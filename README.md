@@ -4,7 +4,7 @@ An automated n8n workflow system that generates comprehensive daily cybersecurit
 
 ## Features
 
-- **Automated Collection**: Monitors 26 premium security RSS feeds
+- **Automated Collection**: Monitors 21 premium security RSS feeds
 - **Feed Health Monitoring**: Logs per-feed item counts and flags stale/dead feeds
 - **AI Categorization**: GPT-4.1-MINI powered story categorization across 17 security domains
 - **Severity Scoring**: Each story scored 1-5 (Critical, High, Medium, Low, Info)
@@ -184,8 +184,8 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
 - **Categories**: 17 comprehensive security categories
 - **Severity Scores**: 1-5 per story
 
-### RSS Sources (26)
-Bleeping Computer, The Hacker News, Dark Reading, Security Week, Krebs on Security, CSO Online, The Register, Wired Security, ESET Blog, Threat Post, Schneier on Security, Techcrunch, Hacker News (hnrss), Microsoft Security, Google Security, AWS Security, Cisco Talos, Unit 42, CISA Alerts, Mandiant, CrowdStrike, Tenable, SANS ISC, Malwarebytes, Sophos News, ZDNet Security
+### RSS Sources (21)
+Bleeping Computer, The Hacker News, Dark Reading, Security Week, Krebs on Security, CSO Online, The Register, Wired Security, ESET Blog, Schneier on Security, Techcrunch, Microsoft Security, Google Security, AWS Security, Cisco Talos, Unit 42, CISA Alerts, CrowdStrike, Tenable, SANS ISC, Malwarebytes
 
 ## Personalisation
 
