@@ -10,7 +10,6 @@ An automated n8n workflow system that generates comprehensive daily cybersecurit
 - **Severity Scoring**: Each story scored 1-5 (Critical, High, Medium, Low, Info)
 - **Pre-AI Deduplication**: URL and title-similarity dedup before sending to AI, saving ~20-30% tokens
 - **Smart Deduplication**: Cross-day dedup filters duplicate stories across 7-day history
-- **Email Delivery**: HTML email brief with severity-coded priority items via Gmail
 - **Historical Archive**: 7-day rolling history with date-based browsing
 - **Search**: Full-text search across headlines, summaries, companies, and CVEs
 - **Trend Charts**: 7-day story volume, category breakdown, and severity distribution
@@ -73,8 +72,6 @@ Each story is assigned a severity score by the AI:
 - Python 3.8+
 - n8n (Docker recommended)
 - OpenAI API key
-- Gmail OAuth2 credentials (for email delivery)
-
 ### Installation
 
 1. **Clone the repository**
@@ -92,8 +89,6 @@ pip install -r requirements.txt
 - Start n8n: `docker run -it --rm --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n n8nio/n8n`
 - Import `My workflow.json` via the n8n UI
 - Configure OpenAI credentials
-- Configure Gmail OAuth2 credentials (for email delivery)
-
 4. **Start the system**
 ```bash
 python start_history_system.py
@@ -133,10 +128,10 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
                                      GPT-4.1-MINI Analysis (categorize + summarize + severity score)
                                                 ↓
                                      Process and Save (parse JSON, validate severity, post-AI dedup)
-                                            ↓          ↓
-                                    Save to Webhook   Prepare Email Summary
-                                            ↓                   ↓
-                                    Workflow Complete    Send Email Report (Gmail)
+                                                ↓
+                                     Save to Webhook
+                                                ↓
+                                     Workflow Complete
 ```
 
 ## Dashboard Features
@@ -227,11 +222,6 @@ Your profile is embedded in:
 1. Check Feed Health Check logs for stale/dead feeds
 2. Verify RSS feeds are accessible
 3. Ensure webhook server is running
-
-### Email not arriving
-1. Verify Gmail OAuth2 credentials in n8n
-2. Check the Send Email Report node for errors
-3. Ensure the email address is correct
 
 ## Data Format
 
