@@ -1,54 +1,79 @@
 # Daily Cybersecurity Brief
 
-An automated n8n workflow system that generates comprehensive daily cybersecurity intelligence briefs from multiple RSS sources, with AI-powered categorization and a modern Streamlit dashboard.
+An automated n8n workflow system that generates comprehensive daily cybersecurity intelligence briefs from multiple RSS sources, with AI-powered categorization, severity scoring, and a modern Streamlit dashboard.
 
-## 🔒 Features
+## Features
 
-- **Automated Collection**: Monitors 13 premium security RSS feeds
+- **Automated Collection**: Monitors 26 premium security RSS feeds
+- **Feed Health Monitoring**: Logs per-feed item counts and flags stale/dead feeds
 - **AI Categorization**: GPT-4.1-MINI powered story categorization across 17 security domains
-- **Smart Deduplication**: Filters duplicate stories across 7-day history and non-English content
+- **Severity Scoring**: Each story scored 1-5 (Critical, High, Medium, Low, Info)
+- **Pre-AI Deduplication**: URL and title-similarity dedup before sending to AI, saving ~20-30% tokens
+- **Smart Deduplication**: Cross-day dedup filters duplicate stories across 7-day history
+- **Email Delivery**: HTML email brief with severity-coded priority items via Gmail
 - **Historical Archive**: 7-day rolling history with date-based browsing
+- **Search**: Full-text search across headlines, summaries, companies, and CVEs
+- **Trend Charts**: 7-day story volume, category breakdown, and severity distribution
 - **Website Source Display**: See the source website for each story
 - **Singapore Timezone**: All timestamps displayed in SGT
-- **Enhanced Navigation**: Filter by category or threat level groups
 - **Dark Theme**: Modern, responsive UI optimized for security professionals
 
-## 📊 Categories
+## Categories
 
-### 🚨 Critical Threats
+### Critical Threats
 - Zero-Day Exploits
 - Threat Intelligence & APTs
 - Breaches/Ransomware
 
-### 🛡️ Vulnerabilities & Defense
+### Vulnerabilities & Defense
 - Vulnerabilities
 - Incident Response & Forensics
 - Identity & Access Management
 
-### 🏢 Enterprise & Infrastructure
+### Enterprise & Infrastructure
 - Supply Chain Security
 - Cloud/SaaS
 - Critical Infrastructure & OT/ICS
 - Mobile & IoT Security
 
-### 📋 Governance & Business
+### Governance & Business
 - Policy/Regulation
 - Data Privacy & Protection
 - Compliance & Audit
 
-### 💡 Innovation & Insights
+### Innovation & Insights
 - Security Operations & Tools
 - Startups/Funding
 - Research
 - AI/ML
 
-## 🚀 Quick Start
+## Severity Scores
+
+Each story is assigned a severity score by the AI:
+
+| Score | Label | Meaning |
+|-------|-------|---------|
+| 5 | CRITICAL | Active exploitation, zero-day, major breach |
+| 4 | HIGH | Significant vulnerability, large-scale attack |
+| 3 | MEDIUM | Notable security event, new threat actor activity |
+| 2 | LOW | Policy update, research finding, tool release |
+| 1 | INFO | Funding news, opinion, minor update |
+
+## Schedule
+
+| Trigger | Time | Purpose |
+|---------|------|---------|
+| Morning run | 10:00 AM SGT | Catch overnight + Asia-Pacific news |
+| Evening run | 6:00 PM SGT | Catch US morning news cycle |
+
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.8+
 - n8n (Docker recommended)
 - OpenAI API key
+- Gmail OAuth2 credentials (for email delivery)
 
 ### Installation
 
@@ -67,6 +92,7 @@ pip install -r requirements.txt
 - Start n8n: `docker run -it --rm --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n n8nio/n8n`
 - Import `My workflow.json` via the n8n UI
 - Configure OpenAI credentials
+- Configure Gmail OAuth2 credentials (for email delivery)
 
 4. **Start the system**
 ```bash
@@ -79,187 +105,170 @@ python start_history_system.py
 - **Webhook Server**: http://localhost:8080
 - **n8n UI**: http://localhost:5678
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
-├── My workflow.json              # n8n workflow definition
-├── streamlit_history_app.py      # Streamlit dashboard with history
-├── webhook_streamlit_server_history.py  # Flask webhook server
-├── start_history_system.py       # System launcher
-├── requirements.txt              # Python dependencies
-└── README.md                     # This file
+├── My workflow.json                      # n8n workflow definition
+├── streamlit_history_app.py              # Streamlit dashboard with history, search, trends
+├── webhook_streamlit_server_history.py   # Flask webhook server with dedup + seen-URLs API
+├── start_history_system.py               # System launcher
+├── requirements.txt                      # Python dependencies
+├── history/                              # 7-day rolling history files
+└── README.md
 ```
 
-## 🔧 Configuration
+## Workflow Pipeline
 
-### Workflow Schedule
+```
+Schedule Trigger (10 AM) ──→ 26 RSS Feeds ──→ Merge
+Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
+                                                ↓
+                                     Feed Health Check (log per-feed stats, flag stale feeds)
+                                                ↓
+                                     Limit (400 items max)
+                                                ↓
+                                     Prepare Stories (date filter + URL dedup + title dedup + language filter)
+                                                ↓
+                                     GPT-4.1-MINI Analysis (categorize + summarize + severity score)
+                                                ↓
+                                     Process and Save (parse JSON, validate severity, post-AI dedup)
+                                            ↓          ↓
+                                    Save to Webhook   Prepare Email Summary
+                                            ↓                   ↓
+                                    Workflow Complete    Send Email Report (Gmail)
+```
 
-The workflow runs daily at **10 AM Singapore Time** (configurable in `My workflow.json`).
-
-### RSS Sources
-
-Currently monitoring 26 security sources including:
-- Bleeping Computer
-- The Hacker News
-- Dark Reading
-- Security Week
-- CSO Online
-- The Register
-- Krebs on Security
-- And more...
-
-### AI Model
-
-- **Model**: GPT-4.1-MINI
-- **Max Tokens**: 16,000
-- **Story Target**: 40-60 stories per brief
-- **Categories**: 17 comprehensive security categories
-- **Deduplication**: Automatic filtering of duplicate URLs and non-English content
-
-## 📱 Usage
+## Dashboard Features
 
 ### Browse Current Brief
-
 1. Open http://localhost:8501
-2. View today's brief with all stories
-3. Use filters to focus on specific categories or threat levels
+2. View today's brief with severity badges on each story
+3. Critical/High stories are visually highlighted
+
+### Search Stories
+1. Click the **"Search"** tab
+2. Type a keyword, CVE (e.g. `CVE-2026-1234`), company name, or topic
+3. Results show matching stories across headlines, summaries, and companies
 
 ### Filter by Category
-
-1. Click **"📁 By Category"** tab
-2. Select a category from the dropdown
-3. View filtered stories
+1. Click **"By Category"** tab
+2. Select a category from the dropdown (shows story counts)
 
 ### Filter by Threat Level
-
-1. Click **"🎯 By Threat Level"** tab
+1. Click **"By Threat Level"** tab
 2. Click a threat level button (Critical, Defense, Enterprise, etc.)
-3. View stories in that threat group
+
+### View Trends
+1. Click the **"Trends"** tab
+2. See daily story volume over the last 7 days
+3. See category breakdown stacked by day
+4. See severity distribution over time (spikes in Critical/High are notable)
 
 ### Browse History
+1. Use the sidebar **"Select Date"** dropdown
+2. Choose from the last 7 days
 
-1. Use the sidebar **"📅 Select Date"** dropdown
-2. Choose a date from the last 7 days (shows "Today", "Yesterday", or "X days ago")
-3. View historical briefs with automatic deduplication
+## API Endpoints (Webhook Server)
 
-## 🔄 Workflow Details
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/webhook/tech-brief` | POST | Receive processed brief from n8n |
+| `/api/seen-urls` | GET | Return all story URLs from last 7 days (for pre-AI dedup) |
+| `/api/history` | GET | List available historical dates |
+| `/api/history/<date>` | GET | Get brief for a specific date |
+| `/health` | GET | Health check |
 
-### Data Flow
+## Configuration
 
-1. **RSS Collection**: 26 feeds polled daily at 10 AM SGT
-2. **AI Processing**: GPT-4.1-MINI categorizes and summarizes stories
-3. **Webhook Delivery**: n8n sends processed data to Flask webhook server
-4. **Smart Filtering**: 
-   - Removes duplicate URLs from previous 7 days
-   - Filters non-English stories automatically
-   - Sanitizes HTML tags from content
-5. **Storage**: Webhook server saves current + 7-day historical files
-6. **Display**: Streamlit dashboard with category filters and date navigation
+### AI Model
+- **Model**: GPT-4.1-MINI
+- **Max Tokens**: 28,000
+- **Temperature**: 0.2 (consistent JSON output)
+- **Story Target**: 40-60 stories per brief
+- **Categories**: 17 comprehensive security categories
+- **Severity Scores**: 1-5 per story
 
-### Error Handling
+### RSS Sources (26)
+Bleeping Computer, The Hacker News, Dark Reading, Security Week, Krebs on Security, CSO Online, The Register, Wired Security, ESET Blog, Threat Post, Schneier on Security, Techcrunch, Hacker News (hnrss), Microsoft Security, Google Security, AWS Security, Cisco Talos, Unit 42, CISA Alerts, Mandiant, CrowdStrike, Tenable, SANS ISC, Malwarebytes, Sophos News, ZDNet Security
 
-- JSON parsing errors are caught and displayed
-- Truncated responses detected with diagnostic info
-- Empty categories gracefully handled
-- File storage failures logged
+## Personalisation
 
-## 🎨 Customization
+Your profile is embedded in:
+- **Enhanced AI Prompt**: Personal context section (car model, loan balance, monthly budget, timeline)
+- **Enhanced Dashboard Report**: SUV options table
 
-### Adjust Categories
+### Current Profile (as of Feb 2026)
+- **Car:** 2021 MG HS 1.5T SUV (Cat B COE, expires 2031)
+- **Mileage:** ~30,000 km
+- **Loan remaining:** $30,498 (paid off Apr 2028)
+- **Estimated resale:** ~$88,000
+- **Target:** New SUV, max $1,100/month installment
+- **Budget after sale:** ~$134,500
 
-Edit the AI prompt in `My workflow.json` (line ~167):
-```javascript
-"categories": ["Category1", "Category2", ...]
-```
+## COE Categories
 
-### Change Schedule
+| Category | Vehicles |
+|----------|----------|
+| A | Cars up to 1,600cc & 97kW |
+| B | Cars above 1,600cc or 97kW |
+| C | Goods vehicles & buses |
+| D | Motorcycles |
+| E | Open (any vehicle) |
 
-Edit the Schedule Trigger in `My workflow.json`:
-```json
-"triggerAtHour": 10,  // Change hour
-"timezone": "Asia/Singapore"  // Change timezone
-```
-
-### Modify Story Count
-
-Edit AI prompt target:
-```
-"Include 20-30 stories" → "Include X-Y stories"
-```
-
-## 📊 Data Format
-
-Stories are saved in JSON format:
-```json
-{
-  "title": "Daily Cybersecurity Brief",
-  "total_stories": 11,
-  "categories": [...],
-  "stories": [
-    {
-      "category": "Vulnerabilities",
-      "headline": "...",
-      "summary": "...",
-      "why_matters": "...",
-      "companies": [...],
-      "url": "...",
-      "published_date": "2025-10-20T09:49:00Z"
-    }
-  ],
-  "metadata": {
-    "source": "13 Security Sources",
-    "ai_model": "GPT-4.1-MINI",
-    "last_update": "2025-10-20T12:00:00Z",
-    "workflow_version": "7.1"
-  },
-  "deduplication": {
-    "original_count": 17,
-    "duplicate_count": 6,
-    "non_english_count": 0,
-    "new_stories_count": 11,
-    "previously_seen_urls": 134
-  },
-  "generated_at": "2025-10-20T10:01:03.918Z",
-  "singapore_date": "Monday, 20 October 2025"
-}
-```
-
-## 🛠️ Troubleshooting
+## Troubleshooting
 
 ### Workflow fails with JSON parsing error
-
 1. Check debug logs in n8n execution
-2. Verify maxTokens is sufficient (16000+)
+2. maxTokens is set to 28,000 — increase further if needed
 3. Reduce story count target if needed
 
 ### No stories showing
-
-1. Verify RSS feeds are accessible
-2. Check date filtering logic
+1. Check Feed Health Check logs for stale/dead feeds
+2. Verify RSS feeds are accessible
 3. Ensure webhook server is running
 
-### Category filtering not working
+### Email not arriving
+1. Verify Gmail OAuth2 credentials in n8n
+2. Check the Send Email Report node for errors
+3. Ensure the email address is correct
 
-1. Clear browser cache (Ctrl+Shift+R)
-2. Click "🔄 Refresh Data" in sidebar
-3. Check category names match exactly
+## Data Format
 
-## 📝 License
-
-MIT License - feel free to use and modify!
-
-## 🤝 Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## 📧 Contact
-
-For questions or issues, please open a GitHub issue.
+Stories are saved in JSON format with severity scores:
+```json
+{
+  "title": "Daily Cybersecurity Brief",
+  "total_stories": 28,
+  "categories": [...],
+  "stories": [
+    {
+      "category": "Zero-Day Exploits",
+      "headline": "...",
+      "summary": "...",
+      "why_matters": "...",
+      "severity": 5,
+      "companies": [...],
+      "url": "...",
+      "published_date": "2026-02-18T09:49:00Z"
+    }
+  ],
+  "metadata": {
+    "source": "26 Security Sources",
+    "ai_model": "GPT-4.1-MINI",
+    "last_update": "2026-02-18T10:00:00Z",
+    "workflow_version": "8.0"
+  },
+  "deduplication": {
+    "original_count": 33,
+    "duplicate_count": 5,
+    "non_english_count": 0,
+    "new_stories_count": 28,
+    "previously_seen_urls": 131
+  }
+}
+```
 
 ---
 
-**Built with**: n8n, Streamlit, Flask, OpenAI GPT-4.1-MINI, Python, Love for Security ❤️
+**Built with**: n8n, Streamlit, Flask, OpenAI GPT-4.1-MINI, Plotly, Python

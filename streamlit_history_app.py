@@ -114,6 +114,61 @@ st.markdown("""
         margin: 1rem 0;
         border: 1px solid #3f51b5;
     }
+    
+    /* Sidebar styling fixes */
+    [data-testid="stSidebar"] {
+        background-color: #1a1a2e;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox label,
+    [data-testid="stSidebar"] label {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+    }
+    
+    [data-testid="stSidebar"] .stSelectbox > div > div {
+        background-color: #2d2d44;
+        color: #ffffff;
+        border: 1px solid #4a4a6a;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stSidebar"] .stMarkdown p {
+        color: #e0e0e0 !important;
+    }
+    
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3 {
+        color: #90caf9 !important;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button {
+        background-color: #1565c0;
+        color: white;
+        border: none;
+    }
+    
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background-color: #1976d2;
+    }
+    
+    /* Fix selectbox dropdown text */
+    .stSelectbox [data-baseweb="select"] {
+        background-color: #2d2d44;
+    }
+    
+    .stSelectbox [data-baseweb="select"] > div {
+        color: #ffffff !important;
+        background-color: #2d2d44;
+    }
+    
+    /* Fix info/warning boxes in sidebar */
+    [data-testid="stSidebar"] [data-testid="stAlert"] {
+        background-color: #1e3a5f;
+        color: #e3f2fd;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -225,9 +280,19 @@ class HistoryTechBriefApp:
             if company_tags:
                 companies_html = f'<div style="margin-top: 0.5rem;">{company_tags}</div>'
         
-        st.markdown(f"""<div class="story-card">
+        severity = story.get('severity', 0)
+        sev_badge = ''
+        if severity and severity >= 1:
+            sev_color_map = {5: '#d32f2f', 4: '#f57c00', 3: '#fbc02d', 2: '#42a5f5', 1: '#90a4ae'}
+            sev_label_map = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'INFO'}
+            sev_badge = f'<span style="background:{sev_color_map.get(severity,"#90a4ae")};color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75rem;font-weight:bold;margin-right:8px">{sev_label_map.get(severity,"")}</span>'
+            border_color = sev_color_map.get(severity, '#64b5f6')
+        else:
+            border_color = '#64b5f6'
+
+        st.markdown(f"""<div class="story-card" style="border-left-color: {border_color};">
     <div class="story-headline">
-        <a href="{url}" target="_blank" style="text-decoration: none; color: #90caf9;">{headline}</a>
+        {sev_badge}<a href="{url}" target="_blank" style="text-decoration: none; color: #90caf9;">{headline}</a>
     </div>
     <div style="color: #b0b0b0; font-size: 0.9rem; margin-bottom: 0.8rem;">
         📅 {formatted_date} • 🌐 <a href="{url}" target="_blank" style="color: #64b5f6; text-decoration: none;">{website_escaped}</a>
@@ -253,10 +318,13 @@ class HistoryTechBriefApp:
         selected_option = st.selectbox(
             "📅 Select Date",
             date_options,
+            index=0,
             help="Choose which day's brief to view"
         )
         
         # Extract date from option string
+        if selected_option is None or isinstance(selected_option, int):
+            return available_dates[0] if available_dates else None
         return selected_option.split(' ')[0]
     
     def format_date_display(self, date_str: str) -> str:
@@ -401,12 +469,28 @@ class HistoryTechBriefApp:
             '💡 Innovation & Insights': ['Security Operations & Tools', 'Startups/Funding', 'Research', 'AI/ML']
         }
         
+        # Severity summary bar (if severity data available)
+        has_severity = any(s.get('severity') for s in stories)
+        if has_severity:
+            sev_counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+            for s in stories:
+                sev = s.get('severity', 3)
+                if sev in sev_counts:
+                    sev_counts[sev] += 1
+            sev_labels = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'INFO'}
+            sev_colors = {5: '#d32f2f', 4: '#f57c00', 3: '#fbc02d', 2: '#42a5f5', 1: '#90a4ae'}
+            badges = ' '.join(
+                f'<span style="background:{sev_colors[s]};color:#fff;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:bold">{sev_labels[s]}: {sev_counts[s]}</span>'
+                for s in [5, 4, 3, 2, 1] if sev_counts[s] > 0
+            )
+            st.markdown(f'<div style="text-align:center;margin:10px 0">{badges}</div>', unsafe_allow_html=True)
+
         # Category filter with enhanced UI
         st.markdown("---")
         st.markdown("### 🔍 Filter & Navigate")
         
         # Create tabs for filter options
-        filter_tab, group_tab = st.tabs(["📁 By Category", "🎯 By Threat Level"])
+        filter_tab, group_tab, search_tab, trends_tab = st.tabs(["📁 By Category", "🎯 By Threat Level", "🔎 Search", "📈 Trends"])
         
         with filter_tab:
             all_categories = data.get('categories', [])
@@ -455,6 +539,127 @@ class HistoryTechBriefApp:
                 st.success(f"Showing: {st.session_state['selected_group']}")
                 if st.button("Clear Filter", use_container_width=True):
                     del st.session_state['selected_group']
+
+        with search_tab:
+            search_query = st.text_input(
+                "Search stories by keyword, CVE, company, or topic",
+                placeholder="e.g. CVE-2026, ransomware, Microsoft, zero-day",
+                key=f"search_{selected_date}"
+            )
+            if search_query:
+                q = search_query.lower()
+                search_results = [
+                    s for s in stories
+                    if q in (s.get('headline', '') + ' ' + s.get('summary', '') + ' ' + s.get('why_matters', '') + ' ' + ' '.join(s.get('companies', []))).lower()
+                ]
+                st.markdown(f"**{len(search_results)}** results for *{search_query}*")
+                if search_results:
+                    for s in search_results:
+                        sev = s.get('severity', 3)
+                        sev_colors_map = {5: '#d32f2f', 4: '#f57c00', 3: '#fbc02d', 2: '#42a5f5', 1: '#90a4ae'}
+                        sev_labels_map = {5: 'CRIT', 4: 'HIGH', 3: 'MED', 2: 'LOW', 1: 'INFO'}
+                        badge = f'<span style="background:{sev_colors_map.get(sev,"#90a4ae")};color:#fff;padding:1px 6px;border-radius:8px;font-size:10px">{sev_labels_map.get(sev,"?")}</span>' if has_severity else ''
+                        st.markdown(
+                            f'<div style="background:#1e1e2e;padding:12px;border-radius:8px;margin-bottom:8px;border-left:3px solid {sev_colors_map.get(sev,"#42a5f5")}">'
+                            f'{badge} <a href="{html.escape(s.get("url","#"))}" target="_blank" style="color:#90caf9;text-decoration:none;font-weight:bold">{html.escape(s.get("headline",""))}</a>'
+                            f'<br><span style="color:#b0b0b0;font-size:12px">{html.escape(s.get("category",""))}</span>'
+                            f'<br><span style="color:#ccc;font-size:13px">{html.escape(s.get("summary",""))}</span></div>',
+                            unsafe_allow_html=True
+                        )
+
+        with trends_tab:
+            available_dates = self.get_available_dates()
+            if len(available_dates) < 2:
+                st.info("Trend charts require at least 2 days of history. Keep running the workflow!")
+            else:
+                import plotly.graph_objects as go
+                import plotly.express as px
+
+                trend_data = []
+                for d_str in sorted(available_dates):
+                    hist = self.load_data_for_date(d_str)
+                    if not hist:
+                        continue
+                    hist_stories = hist.get('stories', [])
+                    cat_counts_hist = {}
+                    sev_counts_hist = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
+                    for s in hist_stories:
+                        cat = s.get('category', 'Other')
+                        cat_counts_hist[cat] = cat_counts_hist.get(cat, 0) + 1
+                        sv = s.get('severity', 3)
+                        if sv in sev_counts_hist:
+                            sev_counts_hist[sv] += 1
+                    trend_data.append({
+                        'date': d_str,
+                        'total': len(hist_stories),
+                        'categories': cat_counts_hist,
+                        'severity': sev_counts_hist
+                    })
+
+                if trend_data:
+                    dates = [t['date'] for t in trend_data]
+                    totals = [t['total'] for t in trend_data]
+
+                    # Total stories over time
+                    fig_total = go.Figure()
+                    fig_total.add_trace(go.Scatter(
+                        x=dates, y=totals, mode='lines+markers',
+                        line=dict(color='#64b5f6', width=3),
+                        marker=dict(size=8), name='Total Stories'
+                    ))
+                    fig_total.update_layout(
+                        title='Daily Story Volume', height=300,
+                        paper_bgcolor='#0e1117', plot_bgcolor='#1a1a2e',
+                        font_color='#e0e0e0', xaxis_title='', yaxis_title='Stories',
+                        margin=dict(l=40, r=20, t=40, b=30)
+                    )
+                    st.plotly_chart(fig_total, use_container_width=True)
+
+                    # Category breakdown over time (top 6)
+                    all_cats_trend = set()
+                    for t in trend_data:
+                        all_cats_trend.update(t['categories'].keys())
+                    cat_totals = {c: sum(t['categories'].get(c, 0) for t in trend_data) for c in all_cats_trend}
+                    top_cats = sorted(cat_totals, key=lambda c: cat_totals[c], reverse=True)[:6]
+
+                    cat_colors = ['#d32f2f', '#f57c00', '#fbc02d', '#42a5f5', '#66bb6a', '#ab47bc']
+                    fig_cats = go.Figure()
+                    for i, cat in enumerate(top_cats):
+                        vals = [t['categories'].get(cat, 0) for t in trend_data]
+                        fig_cats.add_trace(go.Bar(
+                            x=dates, y=vals, name=cat,
+                            marker_color=cat_colors[i % len(cat_colors)]
+                        ))
+                    fig_cats.update_layout(
+                        title='Top Categories Over Time', barmode='stack', height=350,
+                        paper_bgcolor='#0e1117', plot_bgcolor='#1a1a2e',
+                        font_color='#e0e0e0', xaxis_title='', yaxis_title='Stories',
+                        margin=dict(l=40, r=20, t=40, b=30),
+                        legend=dict(orientation='h', y=-0.2)
+                    )
+                    st.plotly_chart(fig_cats, use_container_width=True)
+
+                    # Severity distribution over time
+                    any_sev = any(t['severity'].get(5, 0) + t['severity'].get(4, 0) > 0 for t in trend_data)
+                    if any_sev:
+                        sev_colors_chart = {5: '#d32f2f', 4: '#f57c00', 3: '#fbc02d', 2: '#42a5f5', 1: '#90a4ae'}
+                        sev_names = {5: 'Critical', 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Info'}
+                        fig_sev = go.Figure()
+                        for sev in [5, 4, 3, 2, 1]:
+                            vals = [t['severity'].get(sev, 0) for t in trend_data]
+                            if any(v > 0 for v in vals):
+                                fig_sev.add_trace(go.Bar(
+                                    x=dates, y=vals, name=sev_names[sev],
+                                    marker_color=sev_colors_chart[sev]
+                                ))
+                        fig_sev.update_layout(
+                            title='Severity Distribution Over Time', barmode='stack', height=300,
+                            paper_bgcolor='#0e1117', plot_bgcolor='#1a1a2e',
+                            font_color='#e0e0e0', xaxis_title='', yaxis_title='Stories',
+                            margin=dict(l=40, r=20, t=40, b=30),
+                            legend=dict(orientation='h', y=-0.2)
+                        )
+                        st.plotly_chart(fig_sev, use_container_width=True)
         
         st.markdown("---")
         

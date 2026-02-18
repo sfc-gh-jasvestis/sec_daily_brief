@@ -298,6 +298,19 @@ def get_historical_data(date):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/seen-urls', methods=['GET'])
+def get_seen_urls():
+    """Return all story URLs from the last 7 days for pre-AI deduplication"""
+    try:
+        seen_urls = list(get_previously_seen_urls())
+        return jsonify({
+            "seen_urls": seen_urls,
+            "count": len(seen_urls),
+            "max_history_days": MAX_HISTORY_DAYS
+        })
+    except Exception as e:
+        return jsonify({"error": str(e), "seen_urls": []}), 500
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
