@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir flask langdetect
+
+COPY webhook_streamlit_server_history.py .
+
+RUN useradd --create-home --shell /bin/bash webhook_user
+RUN chown -R webhook_user:webhook_user /app
+
+USER webhook_user
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+
+CMD ["python", "webhook_streamlit_server_history.py"]
