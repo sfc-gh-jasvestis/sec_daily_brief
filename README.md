@@ -187,30 +187,6 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
 ### RSS Sources (21)
 Bleeping Computer, The Hacker News, Dark Reading, Security Week, Krebs on Security, CSO Online, The Register, Wired Security, ESET Blog, Schneier on Security, Techcrunch, Microsoft Security, Google Security, AWS Security, Cisco Talos, Unit 42, CISA Alerts, CrowdStrike, Tenable, SANS ISC, Malwarebytes
 
-## Personalisation
-
-Your profile is embedded in:
-- **Enhanced AI Prompt**: Personal context section (car model, loan balance, monthly budget, timeline)
-- **Enhanced Dashboard Report**: SUV options table
-
-### Current Profile (as of Feb 2026)
-- **Car:** 2021 MG HS 1.5T SUV (Cat B COE, expires 2031)
-- **Mileage:** ~30,000 km
-- **Loan remaining:** $30,498 (paid off Apr 2028)
-- **Estimated resale:** ~$88,000
-- **Target:** New SUV, max $1,100/month installment
-- **Budget after sale:** ~$134,500
-
-## COE Categories
-
-| Category | Vehicles |
-|----------|----------|
-| A | Cars up to 1,600cc & 97kW |
-| B | Cars above 1,600cc or 97kW |
-| C | Goods vehicles & buses |
-| D | Motorcycles |
-| E | Open (any vehicle) |
-
 ## Troubleshooting
 
 ### Workflow fails with JSON parsing error
