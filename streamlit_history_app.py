@@ -670,7 +670,7 @@ class HistoryTechBriefApp:
         
         # Display by category with collapsible sections
         for category, category_stories in categories_with_stories.items():
-            emoji = '🔴'
+            emoji = '🟢'
             
             with st.expander(f"{emoji} {category} ({len(category_stories)})", expanded=True):
                 for story in category_stories:
