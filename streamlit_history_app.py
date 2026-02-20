@@ -453,6 +453,33 @@ class HistoryTechBriefApp:
                 <div style="color: #e0e0e0; font-size: 1.1rem; font-weight: bold; word-wrap: break-word; overflow-wrap: break-word;">📡 {source}</div>
             </div>
             """, unsafe_allow_html=True)
+
+        # List RSS sources under Data Source for clarity
+        rss_sources = [
+            "Bleeping Computer",
+            "The Hacker News",
+            "Dark Reading",
+            "Security Week",
+            "Krebs on Security",
+            "CSO Online",
+            "The Register",
+            "Wired Security",
+            "ESET Blog",
+            "Schneier on Security",
+            "Techcrunch",
+            "Microsoft Security",
+            "Google Security",
+            "AWS Security",
+            "Cisco Talos",
+            "Unit 42",
+            "CISA Alerts",
+            "CrowdStrike",
+            "Tenable",
+            "SANS ISC",
+            "Malwarebytes"
+        ]
+        with st.expander("Sources", expanded=False):
+            st.markdown("\n".join([f"- {src}" for src in rss_sources]))
         
         # Check if we have stories
         stories = data.get('stories', [])
@@ -460,112 +487,67 @@ class HistoryTechBriefApp:
             st.warning("No stories available in this brief.")
             return
         
-        # Group categories by threat level for better navigation
-        category_groups = {
-            '🚨 Critical Threats': ['Zero-Day Exploits', 'Threat Intelligence & APTs', 'Breaches/Ransomware'],
-            '🛡️ Vulnerabilities & Defense': ['Vulnerabilities', 'Incident Response & Forensics', 'Identity & Access Management'],
-            '🏢 Enterprise & Infrastructure': ['Supply Chain Security', 'Cloud/SaaS', 'Critical Infrastructure & OT/ICS', 'Mobile & IoT Security'],
-            '📋 Governance & Business': ['Policy/Regulation', 'Data Privacy & Protection', 'Compliance & Audit'],
-            '💡 Innovation & Insights': ['Security Operations & Tools', 'Startups/Funding', 'Research', 'AI/ML']
-        }
-        
-        # Severity summary bar (if severity data available)
+        # Severity summary bar removed for a cleaner header
         has_severity = any(s.get('severity') for s in stories)
-        if has_severity:
-            sev_counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}
-            for s in stories:
-                sev = s.get('severity', 3)
-                if sev in sev_counts:
-                    sev_counts[sev] += 1
-            sev_labels = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'INFO'}
-            sev_colors = {5: '#d32f2f', 4: '#f57c00', 3: '#fbc02d', 2: '#42a5f5', 1: '#90a4ae'}
-            badges = ' '.join(
-                f'<span style="background:{sev_colors[s]};color:#fff;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:bold">{sev_labels[s]}: {sev_counts[s]}</span>'
-                for s in [5, 4, 3, 2, 1] if sev_counts[s] > 0
-            )
-            st.markdown(f'<div style="text-align:center;margin:10px 0">{badges}</div>', unsafe_allow_html=True)
 
-        # Category filter with enhanced UI
+        # Severity + trends controls
         st.markdown("---")
-        st.markdown("### 🔍 Filter & Navigate")
+        st.markdown("### 🎯 Severity & Trends")
         
         # Create tabs for filter options
-        filter_tab, group_tab, search_tab, trends_tab = st.tabs(["📁 By Category", "🎯 By Threat Level", "🔎 Search", "📈 Trends"])
+        severity_tab, trends_tab = st.tabs(["🎯 By Severity", "📈 Trends"])
         
-        with filter_tab:
-            all_categories = data.get('categories', [])
-            
-            # Count stories per category
-            category_counts = {}
-            for story in stories:
-                cat = story.get('category', 'Uncategorized')
-                category_counts[cat] = category_counts.get(cat, 0) + 1
-            
-            # Create category options with counts (only show categories with stories)
-            categories_with_stories = [cat for cat in all_categories if category_counts.get(cat, 0) > 0]
-            category_options = ['All Categories'] + [
-                f"{cat} ({category_counts.get(cat, 0)})" 
-                for cat in categories_with_stories
-            ]
-            
-            selected_option = st.selectbox(
-                "Select a category to filter",
-                category_options,
-                key=f"category_{selected_date}"
-            )
-            
-            # Extract actual category name - handle the count in parentheses
-            if selected_option == 'All Categories':
-                selected_category = 'All'
+        with severity_tab:
+            if not has_severity:
+                st.info("Severity filters are unavailable until severity scores exist.")
+                selected_severity = 'All'
             else:
-                # Split on ' (' and take the first part to remove the count
-                selected_category = selected_option.rsplit(' (', 1)[0]
-        
-        with group_tab:
-            # Quick jump links to category groups
-            st.markdown("**Jump to section:**")
-            
-            cols = st.columns(2)
-            for idx, (group_name, group_cats) in enumerate(category_groups.items()):
-                # Count stories in this group
-                group_count = sum(category_counts.get(cat, 0) for cat in group_cats)
+                # Count stories per severity level
+                sev_counts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0, 0: 0}
+                for story in stories:
+                    sev = story.get('severity', 0)
+                    if sev in sev_counts:
+                        sev_counts[sev] += 1
                 
-                with cols[idx % 2]:
-                    if st.button(f"{group_name} ({group_count})", use_container_width=True, key=f"group_{idx}"):
-                        st.session_state['selected_group'] = group_name
-            
-            # Show selected group filter
-            if 'selected_group' in st.session_state:
-                st.success(f"Showing: {st.session_state['selected_group']}")
-                if st.button("Clear Filter", use_container_width=True):
-                    del st.session_state['selected_group']
-
-        with search_tab:
-            search_query = st.text_input(
-                "Search stories by keyword, CVE, company, or topic",
-                placeholder="e.g. CVE-2026, ransomware, Microsoft, zero-day",
-                key=f"search_{selected_date}"
-            )
-            if search_query:
-                q = search_query.lower()
-                search_results = [
-                    s for s in stories
-                    if q in (s.get('headline', '') + ' ' + s.get('summary', '') + ' ' + s.get('why_matters', '') + ' ' + ' '.join(s.get('companies', []))).lower()
-                ]
-                st.markdown(f"**{len(search_results)}** results for *{search_query}*")
-                if search_results:
-                    for s in search_results:
-                        sev = s.get('severity', 3)
-                        sev_colors_map = {5: '#d32f2f', 4: '#f57c00', 3: '#fbc02d', 2: '#42a5f5', 1: '#90a4ae'}
-                        sev_labels_map = {5: 'CRIT', 4: 'HIGH', 3: 'MED', 2: 'LOW', 1: 'INFO'}
-                        badge = f'<span style="background:{sev_colors_map.get(sev,"#90a4ae")};color:#fff;padding:1px 6px;border-radius:8px;font-size:10px">{sev_labels_map.get(sev,"?")}</span>' if has_severity else ''
-                        st.markdown(
-                            f'<div style="background:#1e1e2e;padding:12px;border-radius:8px;margin-bottom:8px;border-left:3px solid {sev_colors_map.get(sev,"#42a5f5")}">'
-                            f'{badge} <a href="{html.escape(s.get("url","#"))}" target="_blank" style="color:#90caf9;text-decoration:none;font-weight:bold">{html.escape(s.get("headline",""))}</a>'
-                            f'<br><span style="color:#b0b0b0;font-size:12px">{html.escape(s.get("category",""))}</span>'
-                            f'<br><span style="color:#ccc;font-size:13px">{html.escape(s.get("summary",""))}</span></div>',
-                            unsafe_allow_html=True
-                        )
+                sev_labels = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'INFO', 0: 'UNSCORED'}
+                sev_display = {
+                    5: '🔴 CRITICAL',
+                    4: '🟠 HIGH',
+                    3: '🟡 MEDIUM',
+                    2: '🔵 LOW',
+                    1: '⚪ INFO',
+                    0: '⚫ UNSCORED'
+                }
+                sev_order = [5, 4, 3, 2, 1]
+                
+                cols = st.columns(5)
+                for idx, sev in enumerate(sev_order):
+                    with cols[idx]:
+                        if st.button(
+                            f"{sev_display[sev]} ({sev_counts[sev]})",
+                            use_container_width=True,
+                            key=f"sev_{sev}"
+                        ):
+                            st.session_state['selected_severity'] = sev
+                
+                extra_cols = st.columns(1)
+                with extra_cols[0]:
+                    if sev_counts[0] > 0:
+                        if st.button(
+                            f"{sev_display[0]} ({sev_counts[0]})",
+                            use_container_width=True,
+                            key="sev_0"
+                        ):
+                            st.session_state['selected_severity'] = 0
+                
+                selected_severity = st.session_state.get('selected_severity', 'All')
+                if selected_severity == 'All':
+                    st.caption(f"Showing: All Severities ({len(stories)})")
+                else:
+                    st.caption(
+                        f"Showing: {sev_labels.get(selected_severity, 'Unknown')} "
+                        f"({sev_counts.get(selected_severity, 0)})"
+                    )
 
         with trends_tab:
             available_dates = self.get_available_dates()
@@ -666,16 +648,10 @@ class HistoryTechBriefApp:
         # Apply filters
         filtered_stories = stories.copy()
         
-        # Filter by category if selected
-        if selected_category != 'All':
-            filtered_stories = [story for story in filtered_stories if story.get('category') == selected_category]
-        
-        # Filter by group if selected
-        if 'selected_group' in st.session_state:
-            selected_group = st.session_state['selected_group']
-            if selected_group in category_groups:
-                group_categories = category_groups[selected_group]
-                filtered_stories = [story for story in filtered_stories if story.get('category') in group_categories]
+        # Filter by severity if selected
+        if 'selected_severity' in st.session_state:
+            selected_sev = st.session_state['selected_severity']
+            filtered_stories = [story for story in filtered_stories if story.get('severity') == selected_sev]
         
         # Display stories
         st.subheader(f"📰 Stories ({len(filtered_stories)} of {len(stories)})")
@@ -694,21 +670,7 @@ class HistoryTechBriefApp:
         
         # Display by category with collapsible sections
         for category, category_stories in categories_with_stories.items():
-            # Determine emoji based on category group
             emoji = '🔴'
-            for group_name, group_cats in category_groups.items():
-                if category in group_cats:
-                    if 'Critical' in group_name:
-                        emoji = '🚨'
-                    elif 'Vulnerabilities' in group_name:
-                        emoji = '🛡️'
-                    elif 'Enterprise' in group_name:
-                        emoji = '🏢'
-                    elif 'Governance' in group_name:
-                        emoji = '📋'
-                    elif 'Innovation' in group_name:
-                        emoji = '💡'
-                    break
             
             with st.expander(f"{emoji} {category} ({len(category_stories)})", expanded=True):
                 for story in category_stories:

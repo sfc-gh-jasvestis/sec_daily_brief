@@ -185,7 +185,27 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
 - **Severity Scores**: 1-5 per story
 
 ### RSS Sources (21)
-Bleeping Computer, The Hacker News, Dark Reading, Security Week, Krebs on Security, CSO Online, The Register, Wired Security, ESET Blog, Schneier on Security, Techcrunch, Microsoft Security, Google Security, AWS Security, Cisco Talos, Unit 42, CISA Alerts, CrowdStrike, Tenable, SANS ISC, Malwarebytes
+- Bleeping Computer
+- The Hacker News
+- Dark Reading
+- Security Week
+- Krebs on Security
+- CSO Online
+- The Register
+- Wired Security
+- ESET Blog
+- Schneier on Security
+- Techcrunch
+- Microsoft Security
+- Google Security
+- AWS Security
+- Cisco Talos
+- Unit 42
+- CISA Alerts
+- CrowdStrike
+- Tenable
+- SANS ISC
+- Malwarebytes
 
 ## Troubleshooting
 
