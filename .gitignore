@@ -31,7 +31,7 @@ Thumbs.db
 
 # Secrets and configuration
 .env
-docker-compose-no-db.yml
+docker-compose.yml
 
 # Archives
 *.tar.gz

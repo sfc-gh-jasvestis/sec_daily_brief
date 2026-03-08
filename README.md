@@ -77,7 +77,7 @@ git clone https://github.com/sfc-gh-jasvestis/sec_daily_brief.git
 cd sec_daily_brief
 ```
 
-2. **Add your Gemini API key** to `docker-compose-no-db.yml`:
+2. **Add your Gemini API key** to `docker-compose.yml`:
 ```yaml
 environment:
   GEMINI_API_KEY: your_api_key_here
@@ -85,7 +85,7 @@ environment:
 
 3. **Start all services**
 ```bash
-docker compose -f docker-compose-no-db.yml up -d
+docker compose up -d
 ```
 
 4. **Import the n8n workflow**
@@ -106,7 +106,7 @@ docker compose -f docker-compose-no-db.yml up -d
 ├── streamlit_history_app.py              # Streamlit dashboard
 ├── webhook_streamlit_server_history.py   # Flask webhook server
 ├── requirements.txt                      # Python dependencies
-├── docker-compose-no-db.yml              # Docker Compose (SQLite, no PostgreSQL)
+├── docker-compose.yml              # Docker Compose (SQLite, no PostgreSQL)
 ├── Dockerfile.n8n                        # n8n container
 ├── Dockerfile.webhook                    # Webhook server container
 ├── Dockerfile.streamlit                  # Streamlit container
@@ -184,7 +184,7 @@ Schedule Trigger  (6 PM SGT) ──→ 21 RSS Feeds ──→ Merge
 - **Temperature**: 0.2 (consistent, deterministic JSON output)
 - **Timeout**: 300 seconds
 - **Story Target**: 40–60 stories per brief
-- **API Key**: Set `GEMINI_API_KEY` in `docker-compose-no-db.yml`
+- **API Key**: Set `GEMINI_API_KEY` in `docker-compose.yml`
 
 ### RSS Sources (21)
 
@@ -228,8 +228,8 @@ Schedule Trigger  (6 PM SGT) ──→ 21 RSS Feeds ──→ Merge
 3. Check n8n execution logs for errors in `Prepare Stories` (date filter may be too strict)
 
 ### GEMINI_API_KEY not found
-- Ensure the key is set in `docker-compose-no-db.yml` under the `n8n` service environment
-- Restart n8n after updating: `docker compose -f docker-compose-no-db.yml up -d --no-deps n8n`
+- Ensure the key is set in `docker-compose.yml` under the `n8n` service environment
+- Restart n8n after updating: `docker compose up -d --no-deps n8n`
 
 ## Data Format
 
