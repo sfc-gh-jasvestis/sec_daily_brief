@@ -1,5 +1,5 @@
 # Docker Compose without PostgreSQL - uses SQLite for n8n
-# Copy this file to docker-compose-no-db.yml and add your API keys
+# Copy this file to docker-compose-no-db.yml and fill in your API key
 services:
   n8n:
     build:
@@ -28,9 +28,9 @@ services:
       N8N_BLOCK_ENV_ACCESS_IN_NODE: false
       N8N_GIT_NODE_DISABLE_BARE_REPOS: true
       
-      # OpenAI - set your API key here
-      OPENAI_API_KEY: your-openai-api-key-here
-      
+      # Google Gemini - set your API key here (https://aistudio.google.com/apikey)
+      GEMINI_API_KEY: your-gemini-api-key-here
+
       # Execution
       EXECUTIONS_MODE: regular
       N8N_RUNNERS_ENABLED: true
@@ -39,6 +39,20 @@ services:
     volumes:
       - n8n_data_local:/home/node/.n8n
       - ./history:/data/history:ro  # Mount history directory as read-only for deduplication
+
+  webhook:
+    build:
+      context: .
+      dockerfile: Dockerfile.webhook
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Singapore
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./history:/app/history
+      - ./tech_brief.json:/app/tech_brief.json
 
   streamlit:
     build:
@@ -50,12 +64,15 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./history:/app/history:ro  # Mount history directory as read-only
-      - ./tech_brief.json:/app/tech_brief.json:ro  # Mount current brief as read-only
+      - ./history:/app/history:ro
+      - ./tech_brief.json:/app/tech_brief.json:ro
     depends_on:
       - n8n
+      - webhook
 
 volumes:
   n8n_data_local:
+    external: true
+    name: n8n_n8n_data_local
 
 
