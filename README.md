@@ -6,7 +6,7 @@ An automated n8n workflow system that generates comprehensive daily cybersecurit
 
 - **Automated Collection**: Monitors 21 premium security RSS feeds
 - **Feed Health Monitoring**: Logs per-feed item counts and flags stale/dead feeds
-- **AI Categorization**: GPT-4.1-MINI powered story categorization across 17 security domains
+- **AI Categorization**: Gemini 3.1 Pro powered story categorization across 17 security domains
 - **Severity Scoring**: Each story scored 1-5 (Critical, High, Medium, Low, Info)
 - **Pre-AI Deduplication**: URL and title-similarity dedup before sending to AI, saving ~20-30% tokens
 - **Smart Deduplication**: Cross-day dedup filters duplicate stories across 7-day history
@@ -71,7 +71,7 @@ Each story is assigned a severity score by the AI:
 
 - Python 3.8+
 - n8n (Docker recommended)
-- OpenAI API key
+- Google Gemini API key ([Get one here](https://aistudio.google.com/apikey))
 ### Installation
 
 1. **Clone the repository**
@@ -88,7 +88,8 @@ pip install -r requirements.txt
 3. **Import n8n workflow**
 - Start n8n: `docker run -it --rm --name n8n -p 5678:5678 -v ~/.n8n:/home/node/.n8n n8nio/n8n`
 - Import `My workflow.json` via the n8n UI
-- Configure OpenAI credentials
+- Add a **Google Gemini(PaLM)** credential in n8n with your Gemini API key
+- Connect the credential to the `Message a model` node
 4. **Start the system**
 ```bash
 python start_history_system.py
@@ -125,7 +126,7 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
                                                 ↓
                                      Prepare Stories (date filter + URL dedup + title dedup + language filter)
                                                 ↓
-                                     GPT-4.1-MINI Analysis (categorize + summarize + severity score)
+                                     Gemini 3.1 Pro Analysis (categorize + summarize + severity score)
                                                 ↓
                                      Process and Save (parse JSON, validate severity, post-AI dedup)
                                                 ↓
@@ -141,18 +142,10 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
 2. View today's brief with severity badges on each story
 3. Critical/High stories are visually highlighted
 
-### Search Stories
-1. Click the **"Search"** tab
-2. Type a keyword, CVE (e.g. `CVE-2026-1234`), company name, or topic
-3. Results show matching stories across headlines, summaries, and companies
-
-### Filter by Category
-1. Click **"By Category"** tab
-2. Select a category from the dropdown (shows story counts)
-
-### Filter by Threat Level
-1. Click **"By Threat Level"** tab
-2. Click a threat level button (Critical, Defense, Enterprise, etc.)
+### Filter by Severity
+1. Click the **"By Severity"** tab
+2. Click a severity button (🔴 Critical, 🟠 High, 🟡 Medium, 🔵 Low, ⚪ Info)
+3. Active filter shows count of matching stories
 
 ### View Trends
 1. Click the **"Trends"** tab
@@ -177,8 +170,8 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
 ## Configuration
 
 ### AI Model
-- **Model**: GPT-4.1-MINI
-- **Max Tokens**: 28,000
+- **Model**: Gemini 3.1 Pro
+- **Max Output Tokens**: 28,000
 - **Temperature**: 0.2 (consistent JSON output)
 - **Story Target**: 40-60 stories per brief
 - **Categories**: 17 comprehensive security categories
@@ -211,7 +204,7 @@ Schedule Trigger (6 PM) ───→ 26 RSS Feeds ──→ Merge
 
 ### Workflow fails with JSON parsing error
 1. Check debug logs in n8n execution
-2. maxTokens is set to 28,000 — increase further if needed
+2. maxOutputTokens is set to 28,000 — increase further if needed
 3. Reduce story count target if needed
 
 ### No stories showing
@@ -241,7 +234,7 @@ Stories are saved in JSON format with severity scores:
   ],
   "metadata": {
     "source": "26 Security Sources",
-    "ai_model": "GPT-4.1-MINI",
+    "ai_model": "Gemini 3.1 Pro",
     "last_update": "2026-02-18T10:00:00Z",
     "workflow_version": "8.0"
   },
@@ -257,4 +250,4 @@ Stories are saved in JSON format with severity scores:
 
 ---
 
-**Built with**: n8n, Streamlit, Flask, OpenAI GPT-4.1-MINI, Plotly, Python
+**Built with**: n8n, Streamlit, Flask, Google Gemini 3.1 Pro, Plotly, Python
